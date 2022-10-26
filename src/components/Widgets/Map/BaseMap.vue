@@ -4,17 +4,17 @@
        dir="ltr"
   >
     <l-map ref="lMap"
-           @click="mapClick($event)"
-           :options="{zoomControl: false}"
            v-model:zoom="mapZoom"
            v-model:center="mapCenter"
            v-model:options="mapOptions"
+           :options="{zoomControl: false}"
            :min-zoom="minZoom"
            :max-zoom="maxZoom"
            :bounds="mapBounds"
            :maxBounds="maxBounds"
            :maxBoundsViscosity="maxBoundsViscosity"
            :crs="crs"
+           @click="mapClick($event)"
            @update:zoom="zoomUpdated"
            @update:center="centerUpdated"
            @update:bounds="boundsUpdated">
@@ -37,9 +37,8 @@
           :shadow-size="adminToolBox.marker.data.icon.options.shadowSize"
           :shadow-anchor="adminToolBox.marker.data.icon.options.shadowAnchor"
         >
-          <div class="markerHeadline"
-               v-if="adminToolBox.marker.data.headline.text"
-               v-html="adminToolBox.marker.data.headline.text"
+          <div v-if="adminToolBox.marker.data.headline.text"
+               class="markerHeadline"
                :style="{
                  fontSize: adminToolBox.marker.data.headline.fontSize+'px',
                  'text-fill-color': adminToolBox.marker.data.headline.fillColor,
@@ -49,10 +48,11 @@
                  'text-stroke-color': adminToolBox.marker.data.headline.strokeColor,
                  '-webkit-text-stroke-color': adminToolBox.marker.data.headline.strokeColor
                }"
+               v-html="adminToolBox.marker.data.headline.text"
           >
           </div>
-          <img class="markerImage adminToolBoxMarker"
-               v-if="adminToolBox.marker.data.icon.options"
+          <img v-if="adminToolBox.marker.data.icon.options"
+               class="markerImage adminToolBoxMarker"
                :src="adminToolBox.marker.data.icon.options.iconUrl"
           >
         </l-icon>
@@ -63,13 +63,13 @@
       >
         <q-btn
           class="btnMapControl btnGetLinkToShare"
-          @click="openFilterDrawer"
           icon="isax:search-normal"
+          @click="openFilterDrawer"
         />
         <q-btn
           class="btnMapControl btnGetLinkToShare"
-          @click="openToolsDrawer"
           icon="isax:edit"
+          @click="openToolsDrawer"
         />
       </l-control>
       <l-control
@@ -78,8 +78,8 @@
       >
         <q-btn
           class="btnMapControl btnGetLinkToShare"
-          @click="copyToClipboard"
           icon="isax:link"
+          @click="copyToClipboard"
         >
         </q-btn>
         <div style="width: 130px; background: #ffffff8f;font-family: IRANSans;padding: 5px;border-radius: 5px;">
@@ -286,7 +286,7 @@ export default {
       return this.mapClickActionTypes.find(function (item) {
         return item.selected
       })
-    },
+    }
   },
   methods: {
     reportAdminMarker (event) {
@@ -307,7 +307,7 @@ export default {
         this.adminToolBox.marker.data.icon.options.iconAnchor = data.data.icon.options.iconAnchor
         this.adminToolBox.marker.data.icon.options.iconSize = data.data.icon.options.iconSize
       }
-      console.log('admintoool',this.adminToolBox)
+      console.log('admintoool', this.adminToolBox)
       // console.log(JSON.parse(JSON.stringify(this.adminToolBox.marker.data.icon.options.iconAnchor)))
     },
 
@@ -389,7 +389,6 @@ export default {
       })
     },
 
-
     initMap () {
       this.setCRS()
       this.setBounds()
@@ -449,8 +448,8 @@ export default {
     boundsUpdated (bounds) {
       this.$emit('update:bounds', bounds)
     },
-     saveMapItem () {
-      let newMapItem = new MapItem(this.adminToolBox.marker);
+    saveMapItem () {
+      const newMapItem = new MapItem(this.adminToolBox.marker)
       this.$axios.post(API_ADDRESS.map.items, newMapItem)
         .then(res => {
           console.log(res)
