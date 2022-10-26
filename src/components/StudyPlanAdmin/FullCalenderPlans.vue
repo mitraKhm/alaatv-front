@@ -16,7 +16,7 @@
                 class="timeTableHeader"
                 :style="{ width:  headerCellWidth + 'px'}"
               >
-                <div class="timeTableHeaderNumber bg-pink-2"
+                <div class="timeTableHeaderNumber "
                 >
                   <q-avatar color="white"
                             size="30px"
@@ -38,11 +38,11 @@
     </div>
     <div class="calender-body  row no-wrap">
       <q-scroll-area
+        ref="daysRef"
         visible
         class="col-1 calender-date "
         style="height: 550px;"
         :thumb-style="hiddenThumbStyle"
-        ref="daysRef"
         @scroll="onScrollDays"
       >
         <div v-for="studyPlan in filterdPlans.list"
@@ -54,10 +54,10 @@
         </div>
       </q-scroll-area>
       <q-scroll-area
+        ref="plansRef"
         visible
         class="col-11 full-calender"
         style="height: 550px; max-width: 100%"
-        ref="plansRef"
         @scroll="onScrollPlans"
       >
         <div
@@ -120,7 +120,6 @@ export default {
     },
     horizontalPosition: {
       handler (newValue) {
-        console.log('watch h', newValue)
         if (!newValue) {
           return
         }
@@ -198,8 +197,8 @@ export default {
   left: -15px;
 }
 .minutes-line{
-  border-left: 1px solid red;
-  //position: absolute;
+  //border-left: 1px solid red;
+  position: absolute;
   height: 20px;
   z-index: 100;
 }

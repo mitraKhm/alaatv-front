@@ -1,5 +1,4 @@
 <template>
-  <p class="text-center q-pa-lg">:) the study plan say hi </p>
   <div class="row justify-center">
     <div class="col-2 text-center">
       <q-btn @click="openEmptyForm"
