@@ -2,42 +2,36 @@
   <div class="block-section">
     <div v-if="isThereData"
          class="block-header row q-pa-md q-mb-sm"
-         :class="block.headerCustomClass"
-    >
+         :class="block.headerCustomClass">
       <a :href="block?.url?.web"
-         class="block-title"
-      >
+         class="block-title">
         {{ block.title }}
       </a>
       <q-btn v-if="!block.banners || block.banners.list.length === 0"
              round
              color="primary"
              :icon="isGridView ? 'sync_alt' : 'grid_view'"
-             @click="isGridView = !isGridView"
-      />
+             @click="isGridView = !isGridView" />
     </div>
     <div class="block-container">
       <slider v-if="block.banners && block.banners.list.length > 0"
-              :options="bannerSlides"
-      />
+              :options="bannerSlides" />
       <div v-if="block.products.list.length > 0"
            v-dragscroll
            class="item-container"
-           :class="isGridView ? 'row' : 'scroll-view'"
-      >
-        <div v-for="product in this.block.products.list"
+           :class="isGridView ? 'row' : 'scroll-view'">
+        <div v-for="product in block.products.list"
              :key="product.id"
              :class="{
                'col-xl-3 col-lg-3 col-md-4 col-sm-6 col-xs-12': isGridView
              }"
-             class="product-spacing"
-        >
-          <product-item :options="product" />
+             class="product-spacing">
+          <product-item :options="{product, minWidth: '318px'}" />
         </div>
-        <div class="block-item-box">
+        <div v-if="block?.url?.web"
+             class="block-item-box">
           <a :href="block?.url?.web"
-             class="show-more-title"
-          >
+             class="show-more-title">
             نمایش بیشتر
           </a>
         </div>
@@ -45,21 +39,18 @@
       <div v-if="block.sets.list.length > 0"
            v-dragscroll
            class="item-container"
-           :class="isGridView ? 'row' : 'scroll-view'"
-      >
-        <div v-for="set in this.block.sets.list"
+           :class="isGridView ? 'row' : 'scroll-view'">
+        <div v-for="set in block.sets.list"
              :key="set.id"
              :class="{
                'col-xl-3 col-lg-3 col-md-4 col-sm-6 col-xs-12': isGridView
              }"
-             class="set-spacing"
-        >
-          <set-item :data="set" />
+             class="set-spacing">
+          <set-item :options="{set, minWidth: '318px'}" />
         </div>
         <div class="block-item-box">
           <a :href="block?.url?.web"
-             class="show-more-title"
-          >
+             class="show-more-title">
             نمایش بیشتر
           </a>
         </div>
@@ -67,21 +58,18 @@
       <div v-if="block.contents.list.length > 0"
            v-dragscroll
            class="item-container"
-           :class="isGridView ? 'row' : 'scroll-view'"
-      >
-        <div v-for="content in this.block.contents.list"
+           :class="isGridView ? 'row' : 'scroll-view'">
+        <div v-for="content in block.contents.list"
              :key="content.id"
              :class="{
                'col-xl-3 col-lg-3 col-md-4 col-sm-6 col-xs-12': isGridView
              }"
-             class="content-spacing"
-        >
-          <content-item :data="content" />
+             class="content-spacing">
+          <content-item :options="{content, minWidth: '318px'}" />
         </div>
         <div class="block-item-box">
           <a :href="block?.url?.web"
-             class="show-more-title"
-          >
+             class="show-more-title">
             نمایش بیشتر
           </a>
         </div>
@@ -151,11 +139,11 @@ export default {
     }
   },
   mounted() {
-    // if (this.options.apiName) {
-    //   this.loadBlocks()
-    // } else {
-    // }
-    this.block = new Block(this.options)
+    if (this.options.apiName) {
+      this.loadBlocks()
+    } else {
+      this.block = new Block(this.options)
+    }
   },
 
   methods: {
@@ -163,21 +151,21 @@ export default {
       this.getBlocksByRequest()
     },
 
-    getBlocksByRequest(url) {
+    getBlocksByRequest() {
       this.block.loading = true
-      let promise = null
-      promise = this.getApiRequest()
-      if (promise) {
-        promise
-          .then((response) => {
-            this.block = new Block(response)
+      this.getApiRequest()
+        .then((products) => {
+          console.log(products)
+          this.block = new Block({
+            title: 'محصولات مرتبط',
+            products
+          })
 
-            this.block.loading = false
-          })
-          .catch(() => {
-            this.block.loading = false
-          })
-      }
+          this.block.loading = false
+        })
+        .catch(() => {
+          this.block.loading = false
+        })
     },
 
     getBlocks(blocks) {
@@ -198,6 +186,10 @@ export default {
       if (this.options.apiName === 'shop') {
         return this.$apiGateway.pages.shop()
       }
+      if (this.options.apiName === 'content') {
+        return this.$apiGateway.content.relatedProducts({ id: this.$route.params.id })
+      }
+      return Promise.reject('wrong api name')
     }
   }
 }
@@ -252,6 +244,9 @@ export default {
       */
       padding-top: 10px;
       padding-bottom: 10px;
+      @media screen and (max-width: 600px){
+        height: 500px;
+      }
     }
 
     .item-container {

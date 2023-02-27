@@ -1,18 +1,18 @@
 <template>
-  <q-card class="set-item-box">
+  <q-card class="set-item-box"
+          :style="{minWidth: options.minWidth}">
     <router-link :to="{
-      name: 'User.Set.Show',
-      params: { id: set.id? set.id:-1, title: set.title }
-    }"
-    >
+      name: 'Public.Set.Show',
+      params: { id: set.id ? set.id : -1 }
+    }">
       <div class="img-box">
         <div class="img-videos">
           <div class="flex">
-            <div class="play-icon"></div>
+            <div class="play-icon" />
             {{ set.contents_count }} ویدیو
           </div>
           <div class="flex">
-            <div class="tv"></div>
+            <div class="tv" />
             ریاضی کنکور
           </div>
         </div>
@@ -21,8 +21,7 @@
                     class="img"
                     :alt="set.title"
                     width="16"
-                    height="9"
-          />
+                    height="9" />
         </div>
       </div>
       <div class="set-content-box">
@@ -33,15 +32,16 @@
     </router-link>
     <div class="info-box">
       <div class="teacher-info">
-        <div class="teacher-image">
+        <div v-if="set.author?.photo"
+             class="teacher-image">
           <lazy-img :src="set.author?.photo"
                     alt="set"
                     width="1"
-                    height="1"
-          />
+                    height="1" />
         </div>
-        <div class="teacher-name">
-          {{ set.author?.first_name + ' ' + set.author?.last_name }}
+        <div v-if="setAuthorFullName"
+             class="teacher-name">
+          {{ setAuthorFullName }}
         </div>
       </div>
       <!-- <div class="teacher-score">
@@ -51,7 +51,7 @@
             <div class="star-score"></div>
           </div>
         </div> -->
-      <div class="three-dots"></div>
+      <div class="three-dots" />
     </div>
   </q-card>
 </template>
@@ -69,13 +69,35 @@ export default {
     data: {
       type: Set,
       default: new Set()
+    },
+    options: {
+      type: Object,
+      default: () => {
+        return {
+          style: {},
+          minWidth: 'auto',
+          set: new Set()
+        }
+      }
     }
   },
   data: () => ({
     set: new Set()
   }),
+  computed: {
+    setAuthorFullName () {
+      if (!this.set.author?.first_name && !this.set.author?.last_name) {
+        return ''
+      }
+      return this.set.author?.first_name + ' ' + this.set.author?.last_name
+    }
+  },
   created () {
-    this.set = new Set(this.data)
+    if (!this.options.set) {
+      this.set = new Set(this.data)
+    } else {
+      this.set = new Set(this.options.set)
+    }
   }
 }
 </script>
@@ -86,7 +108,8 @@ export default {
   flex-direction: column;
   height: 100%;
   justify-content: space-between;
-  width: 260px;
+  //width: 260px;
+  width: 100%;
   margin-bottom: 10px;
   position: relative;
   border-radius: 20px;
@@ -122,6 +145,7 @@ export default {
       width: 100%;
       height: 40px;
       top: 140px;
+      left: 0;
       display: flex;
       align-items: center;
       padding-right: 12.19px;
@@ -288,7 +312,7 @@ export default {
   }
 
   &.q-card {
-    min-width: 318px;
+    //min-width: 318px;
   }
 
   .teacher-info {
@@ -425,18 +449,19 @@ export default {
 
   @media screen and (max-width: 575px) {
     width: 310px;
-    min-height: 120px;
-    max-height: 120px;
+    min-height: 270px;
     display: flex;
     border-radius: 18px;
     margin-bottom: 16px;
-    padding: 10px;
 
     .img-box {
-      width: 100px;
+      width: 100%;
       img {
         border-radius: 10px;
       }
+    }
+
+    a {
     }
 
     .set-content-box {

@@ -10,38 +10,38 @@
                 style="width: 50%" />
     </div>
     <div class="previewSetsOfProduct">
-      <q-tabs
-        v-model="tab"
-        indicator-color="transparent"
-        active-color="black"
-        class="text-grey-5 shadow-2 tabs"
-      >
+      <q-tabs v-model="tab"
+              indicator-color="transparent"
+              active-color="black"
+              class="text-grey-5 shadow-2 tabs">
         <q-tab name="videos"
                class="tab">
           <span>فیلم ها</span>
         </q-tab>
-        <q-tab name="pamphlets"
+        <q-tab v-if="pamphlets.length > 0"
+               name="pamphlets"
                class="tab">
           <span>جزوات</span>
         </q-tab>
+        <q-tab v-else
+               name="pamphlets"
+               class="tab">
+          <span>بدون جزوه</span>
+        </q-tab>
       </q-tabs>
-      <q-tab-panels
-        v-model="tab"
-        animated
-        transition-prev="scale"
-        transition-next="scale"
-        class="bg-white text-black text-center"
-      >
+      <q-tab-panels v-model="tab"
+                    animated
+                    transition-prev="scale"
+                    transition-next="scale"
+                    class="bg-white text-black text-center">
         <q-tab-panel v-if="videos.length > 0"
                      name="videos">
           <div v-dragscroll
                class="contents-block">
             <div v-for="video in videos"
                  :key="video.id">
-              <content-item
-                class="q-mr-md"
-                :data="video"
-              />
+              <content-item class="q-mr-md"
+                            :options="video" />
             </div>
           </div>
         </q-tab-panel>
@@ -53,12 +53,16 @@
             <div v-for="pamphlet in pamphlets"
                  :key="pamphlet.id"
                  class="q-mx-md">
-              <img src="public/img/PDF_file_icon.svg.png"
+              <img src="/img/PDF_file_icon.svg.png"
                    :alt="pamphlet.title"
                    style="width: 100px; height: 100px">
             </div>
           </div>
         </q-tab-panel>
+        <q-banner v-else
+                  inline-actions
+                  rounded
+                  class="bg-blue text-white">جزوه ای وجود ندارد</q-banner>
       </q-tab-panels>
     </div>
   </div>
@@ -70,7 +74,7 @@ import { APIGateway } from 'src/api/APIGateway'
 import { Product } from 'src/models/Product'
 import { Set } from 'src/models/Set'
 import { dragscroll } from 'vue-dragscroll'
-import ContentItem from 'components/Widgets/ContentItem/ContentItem'
+import ContentItem from 'components/Widgets/ContentItem/ContentItem.vue'
 
 export default {
   name: 'ProductContents',
@@ -136,7 +140,7 @@ export default {
         })
     },
     getSet(id) {
-      APIGateway.set.show({ data: { id } })
+      APIGateway.set.show({ id })
         .then(set => {
           set.contents.list.forEach(content => {
             if (content.type === 8) {

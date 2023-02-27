@@ -1,21 +1,20 @@
 <template>
-  <q-card class="content-item-box">
+  <q-card class="content-item-box"
+          :style="{minWidth: options.minWidth}">
     <router-link :to="{
-      name: 'User.Content.Show',
-      params: { id: content.id? content.id:-1, title: content.title }
-    }"
-    >
+      name: 'Public.Content.Show',
+      params: { id: content.id ? content.id : -1 }
+    }">
       <div class="img-box">
         <div class="img-title-container">
           <lazy-img :src="content.photo"
                     :alt="content.title"
                     class="img"
                     width="16"
-                    height="9"
-          />
+                    height="9" />
         </div>
         <div class="play-btn">
-          <div class="play-icon"></div>
+          <div class="play-icon" />
         </div>
       </div>
       <div class="content-content-box">
@@ -35,16 +34,26 @@ export default {
   name: 'contentItem',
   components: { LazyImg },
   props: {
-    data: {
-      type: Content,
-      default: new Content()
+    options: {
+      type: Object,
+      default: () => {
+        return {
+          style: {},
+          minWidth: 'auto',
+          content: new Content()
+        }
+      }
     }
   },
   data: () => ({
     content: new Content()
   }),
   created () {
-    this.content = new Content(this.data)
+    if (!this.options.content) {
+      this.content = new Content(this.options)
+    } else {
+      this.content = new Content(this.options.content)
+    }
   }
 }
 </script>
@@ -82,7 +91,7 @@ export default {
   }
 
   &.q-card {
-    min-width: 318px;
+    //min-width: 318px;
   }
 
   .img-box {
@@ -363,14 +372,13 @@ export default {
   @media screen and (max-width: 575px) {
     width: 310px;
     min-height: 120px;
-    max-height: 120px;
+    max-height: 280px;
     display: flex;
     border-radius: 18px;
     margin-bottom: 16px;
-    padding: 10px;
 
     .img-box {
-      width: 100px;
+      width: 100%;
 
       .img {
         border-radius: 10px;

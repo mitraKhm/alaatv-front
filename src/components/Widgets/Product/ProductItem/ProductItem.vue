@@ -1,17 +1,16 @@
 <template>
-  <q-card class="product-item-box">
+  <q-card class="product-item-box"
+          :style="{minWidth: localOptions.minWidth}">
     <div class="img-box">
       <router-link :to="{
-        name: 'User.Product.Show',
-        params: { id: product.id?product.id:-1, title: product.title }
-      }"
-      >
+        name: 'Public.Product.Show',
+        params: { id: product.id ? product.id : -1 }
+      }">
         <lazy-img :src="product.photo"
                   :alt="product.title"
                   width="1"
                   height="1"
-                  class="img"
-        />
+                  class="img" />
         <div class="main-title ellipsis-2-lines">
           {{ product.title }}
         </div>
@@ -19,7 +18,7 @@
     </div>
     <div class="product-content-box">
       <div class="info-box">
-        <div class="teacher-image"></div>
+        <div class="teacher-image" />
         <div class="teacher-name">محمد امین نباخته</div>
         <!-- <div class="teacher-score">
           <div class="total-score">
@@ -34,8 +33,7 @@
           <div class="price-box">
             <div class="price-info">
               <div v-if="product.price['final'] !== product.price['base']"
-                   class="discount"
-              >
+                   class="discount">
                 <span>
                   %{{
                     (
@@ -57,13 +55,13 @@
             </div>
           </div>
         </div>
-        <q-btn unelevated
+        <q-btn v-if="localOptions.canAddToCart"
+               unelevated
                :productId="product.id"
                :data-product-id="product.id"
                class="btn-green"
-               @click="addToCart"
-        >
-          <q-icon name="add"></q-icon>
+               @click="addToCart">
+          <q-icon name="add" />
           <span>افزودن به سبد</span>
         </q-btn>
       </div>
@@ -80,38 +78,61 @@ export default {
   components: { LazyImg },
   props: {
     options: {
-      type: Product,
-      default: new Product()
+      type: Object,
+      default: () => {
+        return {
+          style: {},
+          minWidth: 'auto',
+          canAddToCart: true,
+          product: new Product()
+        }
+      }
     }
   },
   data: () => ({
-    product: new Product()
+    product: new Product(),
+    defaultOptions: {
+      style: {},
+      minWidth: 'auto',
+      canAddToCart: true,
+      product: new Product()
+    }
   }),
+  computed: {
+    localOptions () {
+      return Object.assign(this.defaultOptions, this.options)
+    }
+  },
   created () {
-    this.product = new Product(this.options)
+    if (!this.options.product) {
+      this.product = new Product(this.options)
+    } else {
+      this.product = new Product(this.options.product)
+    }
   },
   methods: {
     addToCart() {
-      this.$store.dispatch('Cart/addToCart', this.product).then(() => {
-        this.$store.dispatch('Cart/reviewCart', this.product).then(() => {
-          this.$q.notify({
-            message: 'با موفقیت به سبد خرید شما افزوده شد',
-            color: 'green',
-            actions: [
-              {
-                label: 'سبد خرید',
-                icon: 'isax:shopping-cart',
-                color: 'white',
-                class: 'bg-green-3',
-                handler: () => {
-                  this.$router.push({ name: 'User.Checkout.Review' })
-                }
-              }
-            ]
-          })
+      this.$store.dispatch('Cart/addToCart', [this.product])
+        .then(() => {
+          this.$store.dispatch('Cart/reviewCart', this.product)
+            .then(() => {
+              this.$q.notify({
+                message: 'با موفقیت به سبد خرید شما افزوده شد',
+                color: 'green',
+                actions: [{
+                  label: 'سبد خرید',
+                  icon: 'isax:shopping-cart',
+                  color: 'white',
+                  class: 'bg-green-3',
+                  handler: () => {
+                    this.$router.push({ name: 'Public.Checkout.Review' })
+                  }
+                }]
+              })
+            })
+        }).catch(() => {
+
         })
-      }).catch(() => {
-      })
     }
   }
 }
@@ -148,6 +169,11 @@ export default {
       letter-spacing: -0.03em;
       margin: 16px;
 
+      @media screen and (max-width: 600px){
+        font-size: 14px;
+        line-height: 16px;
+      }
+
       a {
         margin-bottom: 0;
       }
@@ -163,6 +189,11 @@ export default {
         -webkit-box-orient: vertical;
         text-overflow: ellipsis;
         overflow: hidden;
+
+        @media screen and (max-width: 600px){
+          font-size: 12px;
+          line-height: 14px;
+        }
       }
     }
 
@@ -175,12 +206,16 @@ export default {
       .img {
         width: inherit;
         border-radius: 20px 20px 0 0;
+
+        @media screen and (max-width: 600px){
+          width: 100%;
+        }
       }
     }
   }
 
   &.q-card {
-    min-width: 318px;
+    //min-width: 318px;
   }
 
   .product-content-box {
@@ -355,6 +390,10 @@ export default {
   .btn-green {
     background: #4caf50;
     color: white;
+    @media screen and (max-width: 600px){
+      font-size: 8px;
+      margin: 5px;
+    }
   }
 
   @media screen and (max-width: 992px) {
@@ -424,18 +463,20 @@ export default {
 
   @media screen and (max-width: 575px) {
     width: 310px;
-    min-height: 120px;
-    max-height: 120px;
+    min-height: 460px;
     display: flex;
     border-radius: 18px;
     margin-bottom: 16px;
-    padding: 10px;
 
     .img-box {
       width: 100px;
 
       .img {
         border-radius: 10px;
+      }
+
+      @media screen and (max-width: 600px){
+        width: 100%;
       }
     }
 

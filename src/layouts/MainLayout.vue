@@ -1,25 +1,21 @@
 <template>
   <div class="main-layout">
-    <quasar-template-builder
-      @onResize="resize">
+    <quasar-template-builder @onResize="resize">
       <template #header>
         <template-header :type="getTemplateHeaderType" />
-        <q-linear-progress
-          v-if="$store.getters['loading/loading']"
-          color="primary"
-          reverse
-          class="q-mt-sm"
-          indeterminate
-        />
+        <q-linear-progress v-if="$store.getters['loading/loading']"
+                           color="primary"
+                           reverse
+                           class="q-mt-sm"
+                           indeterminate />
       </template>
       <template #left-drawer>
-        <side-menu-dashboard :type="getLeftDrawerType" />
+        <template-side-bar :type="getLeftDrawerType" />
       </template>
       <template #content>
         <div ref="contentInside"
              v-scroll="onContentInsideScroll"
-             class="content-inside"
-        >
+             class="content-inside">
           <q-dialog v-model="confirmDialogData.show"
                     persistent>
             <q-card class="q-pa-md q-pb-none">
@@ -43,32 +39,40 @@
               </q-card-actions>
             </q-card>
           </q-dialog>
+          <q-dialog v-model="loginDialog">
+            <auth-login />
+          </q-dialog>
 
-          <Router :include="keepAliveComponents" />
+          <router :include="keepAliveComponents" />
         </div>
+        <floating-action-button />
       </template>
-      <template v-slot:footer>
+      <template #footer>
         <alaa-footer />
       </template>
     </quasar-template-builder>
   </div>
 </template>
+
 <script>
 import Router from 'src/router/Router.vue'
-import AlaaFooter from 'components/Widgets/Footer/Footer.vue'
-import KeepAliveComponents from 'assets/js/KeepAliveComponents.js'
-import templateHeader from 'components/Template/templateHeader.vue'
-import SideMenuDashboard from 'components/Menu/SideMenu/SideMenu-dashboard.vue'
+import AlaaFooter from 'src/components/Widgets/Footer/Footer.vue'
+import KeepAliveComponents from 'src/assets/js/KeepAliveComponents.js'
+import templateHeader from 'src/components/Template/Header/TemplateHeader.vue'
+import TemplateSideBar from 'src/components/Template/SideBard/TemplateSideBar.vue'
 import QuasarTemplateBuilder from 'quasar-template-builder/src/quasar-template-builder.vue'
-// import { setHeight } from 'src/boot/page-builder'
+import FloatingActionButton from 'components/Template/FloatingActionButton/FloatingActionButton.vue'
+import AuthLogin from 'components/Auth.vue'
 
 export default {
   components: {
+    AuthLogin,
     Router,
     AlaaFooter,
-    SideMenuDashboard,
-    QuasarTemplateBuilder,
-    templateHeader
+    templateHeader,
+    TemplateSideBar,
+    FloatingActionButton,
+    QuasarTemplateBuilder
   },
   data () {
     return {
@@ -77,22 +81,31 @@ export default {
     }
   },
   computed: {
+    loginDialog: {
+      get () {
+        return this.$store.getters['AppLayout/loginDialog']
+      },
+      set (newValue) {
+        if (!newValue) {
+          this.$store.commit('AppLayout/updateLoginDialog', false)
+          return
+        }
+        this.$store.dispatch('AppLayout/showLoginDialog')
+      }
+    },
     confirmDialogData () {
       return this.$store.getters['AppLayout/confirmDialog']
     },
     getTemplateHeaderType() {
-      return this.$store.getters['AppLayout/templateHeaderType']
+      return this.$store.getters['AppLayout/layoutHeaderType']
     },
     getLeftDrawerType() {
-      return this.$store.getters['AppLayout/templateLeftSideBarType']
+      return this.$store.getters['AppLayout/layoutLeftSideBarType']
     },
     calculateHeightStyle() {
       return this.$store.getters['AppLayout/calculateContainerFullHeight']
     }
   },
-  // created() {
-  //   setHeight(this.calculateHeightStyle)
-  // },
   methods: {
     onContentInsideScroll (data) {
       this.$store.commit('AppLayout/updateLayoutHeaderElevated', data > 0)
@@ -115,18 +128,17 @@ export default {
         } else if (val.width < 990) {
           this.$store.commit('AppLayout/updateLayoutLeftDrawerWidth', 60)
         }
-        return
       }
-      if (val.width > 1439) {
-        this.$store.commit('AppLayout/updateLayoutLeftDrawerWidth', 314)
-        this.$store.commit('AppLayout/updateLayoutLeftDrawerBehavior', 'mobile') && this.$store.commit('AppLayout/updateLayoutRightDrawerBehavior', 'mobile')
-      } else if (val.width > 599) {
-        this.$store.commit('AppLayout/updateLayoutLeftDrawerWidth', 280)
-        this.$store.commit('AppLayout/updateLayoutLeftDrawerBehavior', 'mobile') && this.$store.commit('AppLayout/updateLayoutRightDrawerBehavior', 'mobile')
-      } else {
-        this.$store.commit('AppLayout/updateLayoutLeftDrawerWidth', 242)
-        this.$store.commit('AppLayout/updateLayoutLeftDrawerBehavior', 'mobile') && this.$store.commit('AppLayout/updateLayoutRightDrawerBehavior', 'mobile')
-      }
+      // if (val.width > 1439) {
+      //   this.$store.commit('AppLayout/updateLayoutLeftDrawerWidth', 314)
+      //   this.$store.commit('AppLayout/updateLayoutLeftDrawerBehavior', 'mobile') && this.$store.commit('AppLayout/updateLayoutRightDrawerBehavior', 'mobile')
+      // } else if (val.width > 599) {
+      //   this.$store.commit('AppLayout/updateLayoutLeftDrawerWidth', 280)
+      //   this.$store.commit('AppLayout/updateLayoutLeftDrawerBehavior', 'mobile') && this.$store.commit('AppLayout/updateLayoutRightDrawerBehavior', 'mobile')
+      // } else {
+      //   this.$store.commit('AppLayout/updateLayoutLeftDrawerWidth', 242)
+      //   this.$store.commit('AppLayout/updateLayoutLeftDrawerBehavior', 'mobile') && this.$store.commit('AppLayout/updateLayoutRightDrawerBehavior', 'mobile')
+      // }
     }
   }
 }
@@ -136,6 +148,10 @@ export default {
 .main-layout {
   :deep(.main-layout-container) {
     background-color: #f1f1f1;
+  }
+  :deep(.q-layout__section--marginal) {
+    background-color: transparent;
+    color: inherit;
   }
   .content-inside {
     //padding-top: 20px;

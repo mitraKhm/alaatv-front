@@ -1,11 +1,9 @@
 <template>
-  <div
-    ref="shadow"
-    class="parent-fix"
-  >
+  <div ref="shadow"
+       class="parent-fix">
     <div ref="sticky"
          class="position-fix">
-      <slot></slot>
+      <slot />
     </div>
   </div>
 </template>
@@ -133,5 +131,4 @@ export default {
 .position-fix {
   position: static;
 }
-
 </style>

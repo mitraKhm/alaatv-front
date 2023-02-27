@@ -2,31 +2,27 @@
   <div :style="options.style"
        :class="options.className">
     <div class="show-product-introduction">
-      <div class="product-introduction row">
+      <div class="product-introduction justify-center">
         <div class="intro-features col-md-12">
           <div class="title">
             ویژگی های این محصول
           </div>
           <div class="product-info-box row">
-            <div
-              v-for="(info, index) in information"
-              :key="index"
-              class="product-info col-grow"
-            >
+            <div v-for="(info, index) in information"
+                 :key="index"
+                 class="product-info col-grow">
               <div class="product-info-inside q-ma-sm">
                 <div class="info-header ">
                   <q-img :src="info.src"
-                         class="info-image img"></q-img>
+                         class="info-image img" />
                   <p class="info-title">
                     {{ info.title }}
                   </p>
                 </div>
                 <div class="info-content">
-                  <div
-                    v-for="(value , i) in info.value"
-                    :key="i"
-                    class="info-value col-6"
-                  >
+                  <div v-for="(value , i) in info.value"
+                       :key="i"
+                       class="info-value col-6">
                     <span v-if="value">{{ value }}</span>
                     <span v-else>
                       <q-skeleton width="100px" />
@@ -308,7 +304,7 @@ p {
             height: 135px;
           }
           @media only screen and (max-width: 1023px) {
-            width: 100px;
+            width: 190px;
             height: 102px;
           }
           @media only screen and (max-width: 599px) {

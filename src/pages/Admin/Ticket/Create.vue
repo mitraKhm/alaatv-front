@@ -1,8 +1,6 @@
 <template>
-  <q-page-builder
-    v-model:sections="sections"
-    v-model::options="pageConfig"
-  />
+  <q-page-builder v-model:sections="sections"
+                  v-model::options="pageConfig" />
 </template>
 
 <script>
@@ -20,7 +18,11 @@ export default {
                   {
                     widgets: [
                       {
-                        name: 'Creat'
+                        name: 'Create',
+                        options: {
+                          showRouteName: 'Admin.Ticket.Show',
+                          indexRouteName: 'Admin.Ticket.Index'
+                        }
                       }
                     ]
                   }

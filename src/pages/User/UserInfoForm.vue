@@ -2,76 +2,65 @@
   <div id="q-app"
        class="q-ma-lg row justify-center"
        style="min-height: 100vh">
-    <q-linear-progress
-      v-if="percentageOfInformationCompletion"
-      size="30px"
-      :value="percentageOfInformationCompletion"
-      color="primary"
-      class="q-mt-sm">
+    <q-linear-progress v-if="percentageOfInformationCompletion"
+                       size="30px"
+                       :value="percentageOfInformationCompletion"
+                       color="primary"
+                       class="q-mt-sm">
       <div class="absolute-full flex flex-center">
-        <q-badge
-          text-color="black"
-          color="transparent"
-          class="text-subtitle1 text-weight-bold"
-          align="middle"
-          :label="percentageOfInformationCompletionLabel">
-        </q-badge>
+        <q-badge text-color="black"
+                 color="transparent"
+                 class="text-subtitle1 text-weight-bold"
+                 align="middle"
+                 :label="percentageOfInformationCompletionLabel" />
       </div>
     </q-linear-progress>
     <div class="col-9 form-box">
       <div class="q-pa-md">
         <div class="row justify-between  q-col-gutter-xl">
           <div class="col-md-6 col-12">
-            <q-input
-              v-model="userData.first_name"
-              label="نام"
-              :rules="[
-                val => val !== null && val !== '' || 'پر کردن این فیلد اجباری است' ]"
-            ></q-input>
+            <q-input v-model="userData.first_name"
+                     label="نام"
+                     :rules="[
+                       val => val !== null && val !== '' || 'پر کردن این فیلد اجباری است' ]" />
           </div>
           <div class="col-md-6 col-12">
-            <q-input
-              v-model="userData.last_name"
-              label=" نام خانوادگی"
-              :rules="[
-                val => val !== null && val !== '' || 'پر کردن این فیلد اجباری است' ]"
-            ></q-input>
+            <q-input v-model="userData.last_name"
+                     label=" نام خانوادگی"
+                     :rules="[
+                       val => val !== null && val !== '' || 'پر کردن این فیلد اجباری است' ]" />
           </div>
         </div>
       </div>
       <div class="q-pa-md">
-        <q-select
-          v-model="userData.gender.id"
-          use-input
-          label="جنسیت"
-          color="light-blue-6"
-          :options="genders"
-          option-label="title"
-          option-value="id"
-          map-options
-          emit-value
-          :rules="[
-            val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]"
-        />
+        <q-select v-model="userData.gender.id"
+                  use-input
+                  label="جنسیت"
+                  color="light-blue-6"
+                  :options="genders"
+                  option-label="title"
+                  option-value="id"
+                  map-options
+                  emit-value
+                  :rules="[
+                    val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]" />
       </div>
       <div class="q-pa-md">
         <div class="row justify-between  q-col-gutter-xl">
           <div class="col-md-6 col-12">
-            <q-select
-              v-model="selectedProvince"
-              use-input
-              color="light-blue-6"
-              input-debounce="0"
-              label="استان"
-              :options="provinces"
-              option-label="title"
-              option-value="id"
-              map-options
-              emit-value
-              :rules="[
-                val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]"
-              @filter="filterProvinces"
-            >
+            <q-select v-model="selectedProvince"
+                      use-input
+                      color="light-blue-6"
+                      input-debounce="0"
+                      label="استان"
+                      :options="provinces"
+                      option-label="title"
+                      option-value="id"
+                      map-options
+                      emit-value
+                      :rules="[
+                        val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]"
+                      @filter="filterProvinces">
               <template v-slot:no-option>
                 <q-item>
                   <q-item-section class="text-grey">
@@ -82,21 +71,19 @@
             </q-select>
           </div>
           <div class="col-md-6 col-12">
-            <q-select
-              v-model="selectedCity"
-              use-input
-              input-debounce="0"
-              map-options
-              color="light-blue-6"
-              emit-value
-              label="شهر"
-              :options="citiesForSelectedProvince"
-              option-label="title"
-              option-value="id"
-              :rules="[
-                val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]"
-              @filter="filterCity"
-            >
+            <q-select v-model="selectedCity"
+                      use-input
+                      input-debounce="0"
+                      map-options
+                      color="light-blue-6"
+                      emit-value
+                      label="شهر"
+                      :options="citiesForSelectedProvince"
+                      option-label="title"
+                      option-value="id"
+                      :rules="[
+                        val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]"
+                      @filter="filterCity">
               <template v-slot:no-option>
                 <q-item>
                   <q-item-section class="text-grey">
@@ -111,53 +98,45 @@
       <div class="q-pa-md">
         <div class="row justify-between  q-col-gutter-xl">
           <div class="col-md-6 col-12">
-            <q-select
-              v-model="userData.major.id"
-              color="light-blue-6"
-              label="رشته"
-              :options="majors"
-              option-label="title"
-              emit-value
-              option-value="id"
-              map-options
-              :model-value="userData.major.id"
-              :rules="[
-                val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]"
-            >
-            </q-select>
+            <q-select v-model="userData.major.id"
+                      color="light-blue-6"
+                      label="رشته"
+                      :options="majors"
+                      option-label="title"
+                      emit-value
+                      option-value="id"
+                      map-options
+                      :model-value="userData.major.id"
+                      :rules="[
+                        val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]" />
           </div>
           <div class="col-md-6 col-12">
-            <q-select
-              v-model="userData.grade.id"
-              label="مقطع"
-              color="light-blue-6"
-              :options="grades"
-              option-label="title"
-              option-value="id"
-              emit-value
-              map-options
-              :rules="[
-                val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]"
-            />
+            <q-select v-model="userData.grade.id"
+                      label="مقطع"
+                      color="light-blue-6"
+                      :options="grades"
+                      option-label="title"
+                      option-value="id"
+                      emit-value
+                      map-options
+                      :rules="[
+                        val => val !== null && val !== '' || 'انتخاب این فیلد اجباری است' ]" />
           </div>
         </div>
       </div>
       <!--      verify ------------------------------------------------------------------------------------------------------------>
-      <verify
-        v-if="needVerify"
-        @verified="verified"
-      />
+      <verify v-if="needVerify"
+              @verified="verified" />
       <div class="row justify-end q-mt-lg">
         <!--        submit form ---------------------------------------------------------------------------------->
-        <q-btn
-          :disabl="!this.user.mobile_verified_at"
-          color="blue"
-          class="q-px-xl"
-          rounded
-          dark
-          type="submit"
-          size="16px"
-          @click="checkForSubmit">
+        <q-btn :disabl="!this.user.mobile_verified_at"
+               color="blue"
+               class="q-px-xl"
+               rounded
+               dark
+               type="submit"
+               size="16px"
+               @click="checkForSubmit">
           ثبت
         </q-btn>
       </div>
@@ -166,12 +145,11 @@
 </template>
 
 <script>
-
-import Time from 'src/plugins/time'
-import { mixinAuth } from 'src/mixin/Mixins'
-import API_ADDRESS from 'src/api/Addresses'
-import { User } from 'src/models/User'
-import Verify from 'pages/Auth/Verify'
+import Time from 'src/plugins/time.js'
+import { User } from 'src/models/User.js'
+import Verify from 'pages/Auth/Verify.vue'
+import API_ADDRESS from 'src/api/Addresses.js'
+import { mixinAuth } from 'src/mixin/Mixins.js'
 
 export default {
   name: 'UserInfoForm',
@@ -232,19 +210,14 @@ export default {
   },
   watch: {
     selectedProvince (newVal) {
-      // console.log('select province :', newVal)
       if (newVal) {
         const selectedProvince = this.provinces.find(item => newVal === item.id)
-        // console.log('this.provinces :', this.provinces)
-        // console.log('selectedProvince :', selectedProvince)
-        // console.log('this.user data :', this.userData)
         if (selectedProvince) {
           this.userData.province = selectedProvince
           this.$store.commit('Auth/updateUser', new User(this.userData))
         }
       }
     },
-
     selectedCity (newVal) {
       if (newVal) {
         const selectedCity = this.cities.find(item => newVal === item.id)
@@ -259,24 +232,19 @@ export default {
     this.getUserInfo()
     this.checkVerify()
   },
-
   methods: {
     verified () {
       this.user.mobile_verified_at = Time.now()
       this.needVerify = false
       this.canRedirect()
     },
-
     getUserInfo () {
       this.userData = this.user
       this.getUserData()
-      this.$store.commit('AppLayout/updateLayoutLeftDrawerVisible', false)
     },
-
     checkVerify () {
       this.user.mobile_verified_at ? this.needVerify = false : this.needVerify = true
     },
-
     filterProvinces (val, update) {
       // ToDo 'search problem'
       update(() => {
@@ -285,7 +253,6 @@ export default {
         })
       })
     },
-
     filterCity (val, update) {
       update(() => {
         this.citiesForSelectedProvince = this.citiesForSelectedProvince.filter(item => {
@@ -293,41 +260,29 @@ export default {
         })
       })
     },
-
     getUserProvince () {
-      // console.log('this.userData.city.id', this.userData.city.id)
       if (!this.userData.city && this.userData.city.id !== null && typeof this.userData.city.id !== 'undefined') {
         return
       }
-      // console.log('this.userData.city :', this.userData.city)
-      // console.log(' this.userData.city.id :', this.userData.city.id)
       const userCity = this.cities.find(item => item.id === this.userData.city.id)
-      // console.log('get pro :', userCity)
       let userProvince = null
       if (userCity) {
         userProvince = userCity.province
       }
-      // console.log('list :', userProvince)
 
       return userProvince
     },
-
     loadUserCity () {
-      // console.log('loadUserCity :', !this.userData.city, 'user data :', this.userData)
       if (!this.userData.city) {
         return
       }
-
       const userProvince = this.getUserProvince()
-      // console.log('userProvince eroooooor :', userProvince)
       this.selectedProvince = userProvince.id
       this.selectedCity = this.userData.city.id
     },
-
     getUserData () {
       const that = this
       this.user.loading = true
-      // this.user.getUserData()
       this.$axios.get(API_ADDRESS.user.show_user)
         .then((response) => {
           this.user.loading = false
@@ -339,7 +294,6 @@ export default {
       //   // console.log('err in get data :', err)
       // })
     },
-
     canRedirect () {
       if (this.needVerify) {
         this.$q.notify({
@@ -351,11 +305,10 @@ export default {
         this.redirectUser()
       }
     },
-
     redirectUser () {
       if (!this.user.needToCompleteInfo()) {
         if (!this.redirectAfterCompleteInfoPage) {
-          this.$router.push({ name: 'home' })
+          this.$router.push({ name: 'Public.Home' })
         } else {
           this.$router.push({
             name: this.redirectAfterCompleteInfoPage.name,
@@ -370,13 +323,10 @@ export default {
         })
       }
     },
-
     getUserFormData () {
-      // console.log('get user form data run ')
       this.user.loading = true
       this.$axios.get(API_ADDRESS.user.formData)
         .then((resp) => {
-          // console.log('getUserFormData reeeeeeeesult :', resp)
           this.genders = resp.data.data.genders
           this.grades = resp.data.data.grades
           this.majors = resp.data.data.majors
@@ -384,12 +334,10 @@ export default {
           this.cities = resp.data.data.cities
           this.user.loading = false
           // this.loadSomeData()
-          // console.log(this.user)
           this.userData = this.user
           this.loadUserCity()
         })
         .catch((e) => {
-          // console.log('get user form data in catch', e)
           this.$q.notify({
             type: 'negative',
             message: 'مشکلی در گرفتن اطلاعات رخ داده است. لطفا دوباره امتحان کنید ',
@@ -399,11 +347,9 @@ export default {
         }
         )
     },
-
     checkForSubmit () {
       this.canSubmit() ? this.submit() : this.showSubmitError()
     },
-
     showSubmitError () {
       this.submitMessage.forEach(msg => {
         this.$q.notify({
@@ -413,16 +359,12 @@ export default {
         })
       })
     },
-
     submit () {
       const that = this
       delete this.user.photo
       this.user.loading = true
       this.user.ostan_id = this.selectedProvince
-      // console.log('in submit this.user.ostan_id :', this.user.ostan_id, this.selectedProvince)
       this.user.shahr_id = this.selectedCity
-      // console.log(' this.user.shahr_id :', this.user.shahr_id, this.selectedCity)
-      // console.log(this.user)
       this.user.update()
         .then((response) => {
           that.user.loading = false
@@ -443,7 +385,6 @@ export default {
           })
         })
     },
-
     showErrorMessages (error) {
       const err = error.response
       const messages = []
@@ -467,14 +408,12 @@ export default {
         })
       }
     },
-
     clearErrorMessages () {
       const that = this
       setTimeout(() => {
         that.errorMessages = []
       }, 20000)
     },
-
     canSubmit () {
       let status = true
       if (!this.isValidString(this.userData.first_name)) {
@@ -508,7 +447,6 @@ export default {
 
       return status
     },
-
     isValidString (string) {
       return (typeof string !== 'undefined' && string !== null && string.toString().trim().length > 0)
     }

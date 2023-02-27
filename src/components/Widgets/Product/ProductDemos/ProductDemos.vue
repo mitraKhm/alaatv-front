@@ -1,37 +1,35 @@
 <template>
   <div class="row product-demos-widget"
        :class="options.className"
-       :style="options.style"
-  >
-    <div v-if="contents.blocks && contents.blocks.length > 0"
-         class="demos-container col-md-12">
+       :style="options.style">
+    <div v-if="contents.list && contents.list.length > 0"
+         class="demos-container col-md-12 q-mt-md">
       <p class="section-title">نمونه فیلم ها</p>
-      <div
-        v-dragscroll
-        class="contents-block"
-      >
-        <div
-          v-for="content in contents.list"
-          :key="content.id"
-        >
-          <content-item
-            class="q-mr-md"
-            :data="content"
-          />
+      <div v-dragscroll
+           class="contents-block">
+        <div v-for="content in contents.list"
+             :key="content.id">
+          <content-item class="q-mr-md"
+                        :options="content" />
         </div>
       </div>
     </div>
     <div v-if="pamphlets && pamphlets.length > 0"
-         class="demos-container col-md-12">
+         class="demos-container col-md-12 q-mt-md">
       <p class="section-title">نمونه جزوه ها</p>
-      <div
-        v-dragscroll
-        class="contents-block"
-      >
+      <div v-dragscroll
+           class="contents-block">
         <div v-for="pamphlet in pamphlets"
              :key="pamphlet.id"
              class="pamphlet-image">
-          <vue-picture-swipe :items="[
+          <!-- <FsLightbox
+            :toggler="toggler"
+            :sources="[
+              pamphlet.photo
+            ]"
+          /> -->
+          {{ pamphlet }}
+          <!-- <vue-picture-swipe :items="[
             {
               src: pamphlet.photo,
               thumbnail: pamphlet.photo,
@@ -39,7 +37,7 @@
               h: 400,
               title: pamphlet.title
             }
-          ]"></vue-picture-swipe>
+          ]"></vue-picture-swipe> -->
         </div>
       </div>
     </div>
@@ -48,18 +46,17 @@
 
 <script>
 import { mixinWidget } from 'src/mixin/Mixins'
-import ContentItem from 'components/Widgets/ContentItem/ContentItem'
+import ContentItem from 'components/Widgets/ContentItem/ContentItem.vue'
 import { dragscroll } from 'vue-dragscroll'
 import { ContentList } from 'src/models/Content'
 import { APIGateway } from 'src/api/APIGateway'
-import { Product } from 'src/models/Product'
-import VuePictureSwipe from 'vue3-picture-swipe'
+// import FsLightbox from 'fslightbox-vue'
 
 export default {
   name: 'productDemos',
   components: {
-    ContentItem,
-    VuePictureSwipe
+    ContentItem
+    // FsLightbox
   },
   directives: {
     dragscroll
@@ -76,7 +73,8 @@ export default {
   data() {
     return {
       contents: new ContentList(),
-      pamphlets: []
+      pamphlets: [],
+      toggler: false
     }
   },
   // watch: {
@@ -111,6 +109,7 @@ export default {
       }
 
       this.getProduct(productId)
+      this.getSampleContents(productId)
     },
     getProduct(productId) {
       APIGateway.product.show({
@@ -118,12 +117,19 @@ export default {
         cache: { TTL: 10000 }
       })
         .then(product => {
-          this.contents = new Product(product)
           this.pamphlets = product.sample_photos
         })
         .catch(() => {
           this.product.loading = false
         })
+    },
+    getSampleContents(productId) {
+      APIGateway.product.sampleContent({ productId })
+        .then(response => {
+          this.contents = new ContentList(response)
+          console.log(response)
+        })
+        .catch()
     }
   }
 }
