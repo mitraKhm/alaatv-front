@@ -1,6 +1,6 @@
+import Price from './Price.js'
+import { Product } from './Product.js'
 import { Model, Collection } from 'js-abstract-model'
-import { Product } from './Product'
-import Price from './Price'
 
 class OrderProduct extends Model {
   constructor (data) {
@@ -15,6 +15,7 @@ class OrderProduct extends Model {
       { key: 'extra_attributes' },
       { key: 'photo' },
       { key: 'type' },
+      { key: 'expire_at' },
       {
         key: 'product',
         relatedModel: Product
@@ -40,7 +41,42 @@ class OrderProductList extends Collection {
   }
 
   hasProduct (productId) {
-    return !!this.list.find(order => order.product.id === productId)
+    return this.getProductIndex(productId) !== -1
+  }
+
+  getProductIndex (productId) {
+    return this.list.findIndex(order => order.product.id === productId)
+  }
+
+  getOrderProductIndex (orderProductId) {
+    return this.list.findIndex(order => order.id === orderProductId)
+  }
+
+  addProduct (productId, attributevalues = null) {
+    if (this.hasProduct(productId)) {
+      return
+    }
+
+    this.add({
+      id: productId,
+      attributevalues,
+      order_id: productId,
+      product: new Product({ id: productId })
+    })
+  }
+
+  removeProduct (productId) {
+    const index = this.getProductIndex(productId)
+    if (index !== -1) {
+      this.list.splice(index, 1)
+    }
+  }
+
+  removeOrderProduct (orderProductId) {
+    const index = this.getOrderProductIndex(orderProductId)
+    if (index !== -1) {
+      this.list.splice(index, 1)
+    }
   }
 }
 

@@ -3,32 +3,41 @@
        class="set">
     <div class="header">
       <div class="title">
-        <bookmark v-if="localOptions.showBtnFavorSet"
-                  v-model:value="set.is_favored"
-                  :base-route="getSetBookmarkBaseRoute(set.id)" />
+        <bookmark v-if="localOptions.showBtnFavorSet && !set.loading"
+                  :is-favored="set.is_favored"
+                  :loading="bookmarkLoading"
+                  @clicked="handleSetBookmark" />
         <template v-if="set.loading">
-          <q-skeleton type="text" />
+          <q-skeleton width="300px"
+                      type="text" />
         </template>
         <template v-else>
           {{ set.title }}
         </template>
       </div>
-      <div class="meta">
-        <template v-if="set.loading">
-          <q-skeleton type="text" />
-        </template>
-        <template v-else>
-          {{ set.contents_count }}
-          جلسه
-        </template>
-      </div>
     </div>
     <div class="archives-row">
-      <div class="title">
-        آرشیو محتوا
+      <div class="archives-header">
+        <div class="archives-title">
+          <template v-if="!set.loading">
+            آرشیو محتوا
+          </template>
+          <template v-if="set.loading">
+            <q-skeleton width="100px"
+                        type="text" />
+          </template>
+        </div>
+        <div class="archives-meta">
+          <template v-if="set.loading">
+            <q-skeleton type="text" />
+          </template>
+          <template v-else>
+            {{ set.contents_count }}
+            جلسه
+          </template>
+        </div>
       </div>
       <div class="archives-list">
-
         <template v-if="set.loading">
           <q-skeleton height="100px"
                       class="q-mb-sm" />
@@ -42,12 +51,13 @@
         <template v-else>
           <q-expansion-item v-for="section in definedSections"
                             :key="section.section.id"
+                            :default-opened="definedSections.length === 1"
                             class="section-item">
             <template #header>
               <div class="section-expansion-header">
                 <div class="section-expansion-header-title">
                   <div class="icon">
-                    <q-icon name="isax-svg:book-1"
+                    <q-icon name="ph:book-open-text"
                             size="16.5px" />
                   </div>
                   <div class="text">
@@ -56,7 +66,7 @@
                 </div>
                 <div class="section-expansion-header-meta">
                   {{ getCountOfVideosInContents(section.contents) }}
-                  جلسه
+                  فیلم
                   <span class="dot" />
                   {{ getCountOfPamphletsInContents(section.contents) }}
                   جزوه
@@ -64,7 +74,7 @@
               </div>
             </template>
             <div class="contents-list">
-              <content-item v-for="content in section.contents"
+              <content-item v-for="content in section.contents.list"
                             :key="content.id"
                             :content="content" />
             </div>
@@ -85,27 +95,27 @@
 import moment from 'moment-jalaali'
 import { Set } from 'src/models/Set.js'
 import ContentItem from './ContentItem.vue'
-import API_ADDRESS from 'src/api/Addresses.js'
 import Bookmark from 'src/components/Bookmark.vue'
+import { APIGateway } from 'src/api/APIGateway.js'
+import { ContentList } from 'src/models/Content.js'
 import { SetSection } from 'src/models/SetSection.js'
-import { PageBuilderOptionPanel } from 'src/mixin/Mixins.js'
+import { mixinWidget, mixinPrefetchServerData } from 'src/mixin/Mixins.js'
 
 moment.loadPersian()
 
 export default {
   name: 'SetShowInfo',
   components: { ContentItem, Bookmark },
-  mixins: [PageBuilderOptionPanel],
+  mixins: [mixinWidget, mixinPrefetchServerData],
   props: {
     data: {
       type: [Set, Number, String],
-      default() {
-        return new Set()
-      }
+      default: null
     }
   },
   data() {
     return {
+      bookmarkLoading: false,
       defaultOptions: {
         className: '',
         height: 'auto',
@@ -128,79 +138,130 @@ export default {
   },
   computed: {
     definedSections () {
-      return this.sections.filter(section => section.section.id !== null)
+      return this.sections.filter(section => section.section.id !== 'all')
     },
     contentsWithNullSection () {
-      const target = this.sections.find(section => section.section.id === null)
+      const target = this.sections.find(section => section.section.id === 'all')
       if (!target) {
         return []
       }
 
-      return target.contents
+      return (new ContentList(target.contents)).list
     }
-  },
-  watch: {
-    data() {
-      this.loadSet()
-    },
-    'data.id': function () {
-      this.loadSet()
-    }
-  },
-  created() {
-    this.loadSet()
   },
   methods: {
+    prefetchServerDataPromise () {
+      this.set.loading = true
+      return this.loadSet()
+    },
+    prefetchServerDataPromiseThen (data) {
+      this.set = new Set(data.set)
+      this.set.contents = data.contents
+      this.sections = data.sections
+      this.set.loading = false
+    },
+    prefetchServerDataPromiseCatch () {
+      this.set.loading = false
+    },
+
+    handleSetBookmark () {
+      this.bookmarkLoading = true
+      if (this.set.is_favored) {
+        this.$apiGateway.set.unfavored(this.set.id)
+          .then(() => {
+            this.set.is_favored = !this.set.is_favored
+            this.bookmarkLoading = false
+          })
+          .catch(() => {
+            this.bookmarkLoading = false
+          })
+        return
+      }
+      this.$apiGateway.set.favored(this.set.id)
+        .then(() => {
+          this.set.is_favored = !this.set.is_favored
+          this.bookmarkLoading = false
+        })
+        .catch(() => {
+          this.bookmarkLoading = false
+        })
+    },
     getCountOfVideosInContents (contents) {
-      return contents.filter(content => content.isVideo()).length
+      if (!contents || !contents.list) {
+        return 0
+      }
+      return (new ContentList(contents)).list.filter(content => content.isVideo()).length
     },
     getCountOfPamphletsInContents (contents) {
-      return contents.filter(content => content.isPamphlet()).length
-    },
-    getSetBookmarkBaseRoute(id) {
-      return API_ADDRESS.set.show(id)
+      if (!contents || !contents.list) {
+        return 0
+      }
+      return (new ContentList(contents)).list.filter(content => content.isPamphlet()).length
     },
     loadSet() {
-      if (typeof this.data === 'object') {
-        this.set = this.data
-      } else if (
-        typeof this.data === 'number' ||
-        typeof this.data === 'string'
-      ) {
-        this.set.id = this.data
-        this.getSet()
-      }
-      this.set.id = this.$route.params.id
-      this.getSet()
+      return new Promise((resolve, reject) => {
+        if (this.data && typeof this.data === 'object') {
+          resolve({
+            set: this.data,
+            contents: [],
+            sections: []
+          })
+        } else if (
+          typeof this.data === 'number' ||
+          typeof this.data === 'string'
+        ) {
+          this.getSet(this.data)
+            .then((data) => {
+              resolve(data)
+            })
+            .catch(() => {
+              reject()
+            })
+        } else {
+          this.getSet(this.$route.params.id)
+            .then((data) => {
+              resolve(data)
+            })
+            .catch(() => {
+              reject()
+            })
+        }
+      })
     },
-    getSplitedContentsToSections (contentList) {
-      const sections = this.getSectionsFromContents(contentList)
+    getSplitedContentsToSections (contents) {
+      const sections = contents.getSections()
       const splitedContents = []
       sections.forEach((section) => {
-        const contentsOfSection = contentList.list.filter(content => content.section.id === section.id)
+        const contentsOfSection = contents.list.filter(content => content.section.id === section.id)
         splitedContents.push({
           section: new SetSection(section),
-          contents: contentsOfSection
+          contents: new ContentList(contentsOfSection)
         })
       })
 
       return splitedContents
     },
-    getSectionsFromContents (contentList) {
-      return contentList.list.map((content) => content.section)
-        .filter((section, sectionIndex, sections) => sections.findIndex(sectionItem => sectionItem.id === section.id) === sectionIndex)
-    },
-    getSet() {
-      this.set.loading = true
-      this.$apiGateway.set.show(this.set.id)
-        .then((set) => {
-          this.set = set
-          this.sections = this.getSplitedContentsToSections(this.set.contents)
-          this.set.loading = false
-        })
-        .catch(() => {
-          this.set.loading = false
-        })
+    getSet(setId) {
+      return new Promise((resolve, reject) => {
+        APIGateway.set.show(setId)
+          .then((set) => {
+            APIGateway.set.getContents(setId)
+              .then((contents) => {
+                set.contents = (new ContentList(contents))
+                resolve({
+                  set,
+                  contents: (new ContentList(contents)),
+                  sections: this.getSplitedContentsToSections(set.contents)
+                })
+              })
+              .catch(() => {
+                reject()
+              })
+          })
+          .catch(() => {
+            reject()
+          })
+      })
     }
   }
 }
@@ -214,15 +275,42 @@ export default {
     display: flex;
     justify-content: space-between;
     margin-top: 40px;
-    .title {}
-    .meta {}
+
+    @media screen and (max-width: 599px) {
+      flex-direction: column;
+    }
+    .title {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
   }
   .archives-row {
-    .title {
+    .archives-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-top: 40px;
+      padding: 0 25px;
+
+      .archives-title {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+      }
+      .archives-meta {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
     }
     .archives-list {
       margin-top: 20px;
+      //@media screen and (max-width: 599px) {
+      //  margin-left: 10px;
+      //  margin-right: 10px;
+      //}
       .section-item {
         margin-bottom: 20px;
         border-radius: 16px;

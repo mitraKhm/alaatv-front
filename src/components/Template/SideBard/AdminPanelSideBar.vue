@@ -56,7 +56,8 @@
               <q-icon name="search" />
             </template>
           </q-input>
-          <menu-item :menu="titlesList" />
+          <menu-item class="menu-item"
+                     :items="titlesList" />
         </q-list>
         <div class="log-out"
              @click="logOut">
@@ -73,9 +74,9 @@
 </template>
 
 <script>
-import menuItem from 'components/Menu/SideMenu/MenuItem.vue'
 import list from 'src/assets/js/AdminSidePanelConfig.js'
 import ProfileInfo from 'components/Utils/ProfileInfo.vue'
+import menuItem from 'components/Menu/SideMenu/MenuItem.vue'
 export default {
   name: 'AdminPanelSideBar',
   components: { ProfileInfo, menuItem },
@@ -173,6 +174,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+:deep(.menu-item) {
+  .item-list {
+    font-size: 18px !important;
+  }
+}
 .side-menu-main-layout {
   display: flex;
   flex-direction: column;

@@ -1,27 +1,23 @@
 <template>
   <div class="row">
-    <div class="col-9">
-      <div class="row">
-        <template v-for="item in imgData"
-                  :key="item">
-          <div class="col-4 q-px-lg">
-            <div class="rate"
-                 @click="selectedImgActions(item.id)">
-              <q-img class="rate-img"
-                     :src="item.url" />
-              <div class="rate-title">
-                {{item.title}}
-              </div>
-            </div>
+    <template v-for="item in imgData"
+              :key="item">
+      <div class="col-4 q-px-lg">
+        <div class="rate"
+             @click="selectedImgActions(item.id)">
+          <q-img class="rate-img"
+                 :src="item.url" />
+          <div class="rate-title">
+            {{item.title}}
           </div>
-        </template>
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <script>
-import API_ADDRESS from 'src/api/Addresses.js'
+import { APIGateway } from 'src/api/APIGateway'
 
 export default {
   name: 'TicketRate',
@@ -85,14 +81,12 @@ export default {
       if (!this.isSelected(this.selectedId, rateId)) {
         return false
       }
-      this.$axios.post(API_ADDRESS.ticket.ticketRate(this.ticketId), {
-        rate: rateId
-      })
-        .then((res) => {
+      APIGateway.ticket.sendTicketRate(this.ticketId, { rate: rateId })
+        .then((message) => {
           this.ActiveAndCheckImages(rateId)
           this.selectedId = rateId
           this.$q.notify({
-            message: res.data.message,
+            message,
             type: 'positive'
           })
         })
@@ -126,6 +120,8 @@ export default {
 <style lang="scss" scoped>
 .rate{
   display: flex;
+  flex-direction: column;
+  align-items: center;
   cursor: pointer;
   .rate-img {
     width: 70px;
@@ -134,7 +130,7 @@ export default {
   .rate-title {
     display: flex;
     align-items: center;
-    margin-left: 16px;
+    margin-top: 5px;
     font-weight: 500;
     font-size: 16px;
   }

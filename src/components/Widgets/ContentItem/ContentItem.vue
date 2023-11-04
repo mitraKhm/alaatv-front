@@ -1,58 +1,158 @@
 <template>
   <q-card class="content-item-box"
           :style="{minWidth: options.minWidth}">
-    <router-link :to="{
-      name: 'Public.Content.Show',
-      params: { id: content.id ? content.id : -1 }
-    }">
+    <router-link :to="getRoutingObject"
+                 :target="localOptions.contentLinkTarget"
+                 class="content-item-router-link">
       <div class="img-box">
-        <div class="img-title-container">
-          <lazy-img :src="content.photo"
-                    :alt="content.title"
-                    class="img"
-                    width="16"
-                    height="9" />
-        </div>
+        <lazy-img :src="content.photo"
+                  :alt="content.title"
+                  width="16"
+                  height="9"
+                  class="img" />
         <div class="play-btn">
           <div class="play-icon" />
         </div>
       </div>
-      <div class="content-content-box">
-        <div class="main-title ellipsis-2-lines">
-          {{ content.title }}
-        </div>
-      </div>
     </router-link>
+    <div class="content-info-container ">
+      <router-link :to="getRoutingObject"
+                   class="content-item-router-link">
+        <div class="content-box-text">
+          <div class="main-title ellipsis">
+            <div v-if="defaultOptions.showSetTitle">
+              {{ content.set.short_title}}
+            </div>
+          </div>
+          <div class="title-text  ellipsis-2-lines">
+            {{ content.short_title ? content.short_title : content.title }}
+          </div>
+        </div>
+      </router-link>
+      <div v-if="defaultOptions.showBookmark || (localOptions.showDownloadMenu && localOptions.content.file?.video)"
+           class="content-action-container">
+        <bookmark v-if="defaultOptions.showBookmark"
+                  class="content-item-bookmark"
+                  :is-favored="options.content.is_favored"
+                  :loading="bookmarkLoading"
+                  @clicked="handleContentBookmark" />
+        <q-btn v-if="localOptions.showDownloadMenu && localOptions.content.file?.video"
+               class="content-item-more-btn"
+               flat
+               icon="isax:more-circle">
+          <q-tooltip anchor="top middle"
+                     self="bottom middle"
+                     :offset="[10, 10]">
+            دانلود محتوا
+          </q-tooltip>
+          <q-menu>
+            <q-list>
+              <q-item v-for="(item, index) in localOptions.content.file.video"
+                      :key="index"
+                      v-close-popup
+                      clickable
+                      class="route-link"
+                      target="_blank"
+                      :href="item.link + (item.link.includes('?') ? '' : '?') +'download=1'">
+                <q-item-section> دانلود فایل با {{ item.caption }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
+      </div>
+    </div>
   </q-card>
 </template>
 
 <script>
 import { Content } from 'src/models/Content.js'
 import LazyImg from 'src/components/lazyImg.vue'
+import { mixinWidget } from 'src/mixin/Mixins.js'
+import Bookmark from 'src/components/Bookmark.vue'
 
 export default {
   name: 'contentItem',
-  components: { LazyImg },
+  components: { LazyImg, Bookmark },
+  mixins: [mixinWidget],
   props: {
     options: {
       type: Object,
       default: () => {
-        return {
-          style: {},
-          minWidth: 'auto',
-          content: new Content()
-        }
+        return {}
       }
     }
   },
+  emits: ['onBookmarkLoaded', 'onBookmarkClicked'],
   data: () => ({
-    content: new Content()
+    bookmarkLoading: false,
+    content: new Content(),
+    defaultOptions: {
+      style: {},
+      contentLinkTarget: '_self',
+      minWidth: 'auto',
+      content: new Content(),
+      showSetTitle: false,
+      showBookmark: false,
+      showDownloadMenu: false,
+      routeToContent: true
+    }
   }),
+  computed: {
+    getRoutingObject() {
+      if (this.defaultOptions.routeToContent) {
+        return {
+          name: 'Public.Content.Show',
+          params: { id: this.content.id ? this.content.id : -1 }
+        }
+      }
+      return {}
+    },
+    bookmarkValue: {
+      get () {
+        return this.options.content.is_favored
+      },
+      set () {
+        this.bookmarkUpdated()
+      }
+    }
+  },
   created () {
     if (!this.options.content) {
       this.content = new Content(this.options)
     } else {
       this.content = new Content(this.options.content)
+    }
+  },
+  methods: {
+    handleContentBookmark (value) {
+      this.bookmarkLoading = true
+      if (this.bookmarkValue) {
+        this.$apiGateway.content.unfavored(this.options.content.id)
+          .then(() => {
+            this.bookmarkValue = !this.bookmarkValue
+            this.bookmarkClicked(value)
+            this.bookmarkLoading = false
+          })
+          .catch(() => {
+            this.bookmarkLoading = false
+          })
+        return
+      }
+      this.$apiGateway.content.favored(this.options.content.id)
+        .then(() => {
+          this.bookmarkValue = !this.bookmarkValue
+          this.bookmarkClicked(value)
+          this.bookmarkLoading = false
+        })
+        .catch(() => {
+          this.bookmarkLoading = false
+        })
+    },
+    bookmarkUpdated (value) {
+      this.$emit('onBookmarkLoaded', value)
+    },
+    bookmarkClicked (value) {
+      this.$emit('onBookmarkClicked', value)
     }
   }
 }
@@ -62,22 +162,17 @@ export default {
 .content-item-box {
   display: flex;
   flex-direction: column;
-  height: 100%;
   justify-content: space-between;
-  width: 260px;
-  margin-bottom: 10px;
-  position: relative;
   border-radius: 20px;
   box-shadow: -2px -4px 10px rgba(255, 255, 255, 0.6),
   2px 4px 10px rgba(46, 56, 112, 0.05);
   background-color: #ffffff;
   top: 0;
+  overflow: hidden;
   transition: all ease 0.5s;
-
   &:hover {
     box-shadow: -5px -6px 10px rgba(255, 255, 255, 0.6),
     5px 5px 20px rgba(0, 0, 0, 0.1);
-    top: -10px;
 
     .img-box .img-videos {
       opacity: 0.6;
@@ -94,18 +189,32 @@ export default {
     //min-width: 318px;
   }
 
+  .content-action-container{
+    position: absolute;
+    right: 0;
+    top: -2px;
+    .content-item-bookmark {
+      margin: -10px;
+    }
+  }
+
+  .content-item-router-link {
+    width: 100%;
+  }
+
+  .content-box-text {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100%;
+    min-height: 48px;
+  }
+
   .img-box {
     position: relative;
 
-    .img-title-container {
-      border-radius: inherit;
-      box-shadow: none;
+    :deep(.img) {
       width: 100%;
-
-      .img {
-        width: inherit;
-        border-radius: 20px 20px 0 0;
-      }
+      border-radius: 20px 20px 0 0;
     }
 
     .img-videos {
@@ -125,33 +234,36 @@ export default {
     }
   }
 
-  .content-content-box {
+  .content-info-container {
+    min-height: 110px;
     padding: 10px 16px 16px 16px;
-
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr;
     .main-title {
       font-style: normal;
       font-weight: 400;
       font-size: 16px;
       line-height: 24px;
       letter-spacing: -0.03em;
-      margin-bottom: 15px;
+      width: 185px;
 
       a {
         margin-bottom: 0;
       }
 
-      .title-text {
-        font-weight: 500;
-        font-size: 14px;
-        line-height: 24px;
-        letter-spacing: -0.03em;
-        color: #333333;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
-        text-overflow: ellipsis;
-        overflow: hidden;
-      }
+    }
+    .title-text {
+      font-size: 14px;
+      line-height: 24px;
+      letter-spacing: -0.03em;
+      color: #333333;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      align-self: center;
     }
 
     .price-box {
@@ -306,11 +418,10 @@ export default {
 
   @media screen and (max-width: 992px) {
     .img-box {
-      .img {
-      }
+      height: 100%;
     }
 
-    .content-content-box {
+    .content-info-container {
       .main-title {
         a {
         }
@@ -365,100 +476,6 @@ export default {
       .discount {
         span {
         }
-      }
-    }
-  }
-
-  @media screen and (max-width: 575px) {
-    width: 310px;
-    min-height: 120px;
-    max-height: 280px;
-    display: flex;
-    border-radius: 18px;
-    margin-bottom: 16px;
-
-    .img-box {
-      width: 100%;
-
-      .img {
-        border-radius: 10px;
-      }
-    }
-
-    .content-content-box {
-      padding: 0 0 0 16px;
-      width: 100%;
-
-      .main-title {
-        margin-bottom: 0;
-
-        a {
-        }
-
-        .title-box {
-          height: 44px;
-          justify-content: center;
-
-          .title-text {
-            -webkit-line-clamp: 2;
-          }
-        }
-      }
-
-      .price-box {
-        margin-bottom: 0;
-
-        .add-cart-info {
-          .add-cart-icon {
-          }
-        }
-
-        .price-info {
-          .final-price-box {
-            .final-price {
-              margin-left: 2px;
-            }
-          }
-
-          .main-price {
-            margin-left: 4px;
-          }
-
-          .price-Toman {
-          }
-        }
-      }
-
-      .action-box {
-        .more-detail {
-          a {
-          }
-
-          .more {
-            display: none;
-          }
-        }
-
-        .btn-style {
-          width: 100px;
-          height: 25px !important;
-          border-radius: 8px;
-
-          img {
-            margin-left: 0;
-          }
-
-          .content {
-          }
-
-          .active {
-          }
-        }
-      }
-
-      .discount {
-        height: 20px;
-        /* margin-left: 3px; */
       }
     }
   }

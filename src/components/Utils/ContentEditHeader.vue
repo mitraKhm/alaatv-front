@@ -67,6 +67,10 @@
 import FormBuilder from 'quasar-form-builder/src/FormBuilder.vue'
 import { APIGateway } from 'src/api/APIGateway'
 import { EntityCrudFormBuilder } from 'quasar-crud'
+import { shallowRef } from 'vue'
+import TagsComponent from 'components/Utils/Tags.vue'
+const Tags = shallowRef(TagsComponent)
+
 export default {
   name: 'EntityEditHeader',
   components: { FormBuilder, EntityCrudFormBuilder },
@@ -86,8 +90,8 @@ export default {
     return {
       moreSelectorValue: 'بیشتر',
       moreSelectorOptions: [
-        { label: 'حذف', value: 'delete' },
-        { label: 'دانلود', value: 'download' }
+        { label: 'حذف', value: 'delete' }
+        // { label: 'دانلود', value: 'download' }
       ],
       editSelectorValue: 'ویرایش',
       editSelectorOptions: [
@@ -117,7 +121,7 @@ export default {
             label: 'ثبت مجموعه'
           },
           indexConfig: {
-            apiAddress: APIGateway.set.FullAPIAdresses.base,
+            apiAddress: APIGateway.set.APIAdresses.base,
             tableTitle: 'مجموعه ها',
             tableKeys: {
               data: 'data',
@@ -283,15 +287,24 @@ export default {
             ]
           },
           {
-            type: 'input',
+            type: Tags,
             name: 'description',
+            label: 'متن مورد نظر خود را وارد نمایید',
+            placeholder: ' ',
             outlined: true,
-            autogrow: true,
-            value: null,
-            placeholder: 'متن مورد نظر خود را وارد نمایید',
-            label: 'تگ ها:',
+            responseKey: 'data.tags',
             col: 'col-md-8'
           },
+          // {
+          //   type: 'input',
+          //   name: 'description',
+          //   outlined: true,
+          //   autogrow: true,
+          //   value: null,
+          //   placeholder: 'متن مورد نظر خود را وارد نمایید',
+          //   label: 'تگ ها:',
+          //   col: 'col-md-8'
+          // },
           {
             // type: 'formBuilder',
             type: 'hidden',
@@ -446,6 +459,7 @@ export default {
             message: res.message,
             position: 'top'
           })
+          this.contentUpdated()
         })
         .catch(() => {})
       this.moreSelectorValue = 'بیشتر'
@@ -508,15 +522,15 @@ export default {
 .entity-edit-header {
   padding-top: 20px;
   .upper-card {
-    color: var(--alaa-Neutral2);
+    color: #F4F5F6;
     display: grid;
     grid-template-columns: 170px auto;
     :deep(.q-field) {
       .q-field__append {
-        color: var(--alaa-Neutral2);
+        color: #F4F5F6;
       }
       .q-field__native {
-        color: var(--alaa-Neutral2);
+        color: #F4F5F6;
       }
     }
     .header-item {
@@ -536,7 +550,7 @@ export default {
         width: 120px;
      }
       .lower-card{
-        //color: var(--alaa-TextSecondary);
+        //color: #65677F;
       }
     }
   }

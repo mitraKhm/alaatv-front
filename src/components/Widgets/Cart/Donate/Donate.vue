@@ -1,40 +1,43 @@
 <template>
-  <div class="donate bg-white"
-       :style="options.style">
+  <div class="donate bg-white">
     <p>کمک مالی به آلاء</p>
     <q-separator />
     <div class="row q-my-md text-center reverse-wrap">
-      <div class="row col-md-8 col-sm-9 col-xs-12 items-center"
+      <div class="col-md-6 col-sm-7 col-xs-12 flex items-center"
            style="font-size: 14px">
-        <div :class="{activeHelp:!helpAlaa}"
-             class="donate-help col-md-12 col-xs-6 border text-center q-py-sm"
-             @click="helpAlaa=false; activeDonateCost()">
-          <span>
-            به آلاء کمک نمیکنم
-          </span>
-        </div>
-        <div class="cost row text-center q-mt-md col-md-12 col-xs-6">
-          <div v-for="(cost,idx) in donateCost"
-               :key="idx"
-               :class="{activeDonate:cost.isActive}"
-               class="cost-donate col border q-mx-xs q-pa-sm"
-               @click="activeDonateCost(idx); helpAlaa=true">
-            <span>{{ cost.cost }}</span>
-          </div>
-        </div>
+        <div class="q-mr-sm">5000 تومان به آلاء کمک</div>
+        <q-btn-toggle v-model="donate"
+                      unelevated
+                      glossy
+                      toggle-color="primary"
+                      :options="[
+                        {label: 'میکنم', value: 'doHelp'},
+                        {label: 'نمیکنم', value: 'dontHelp'},
+                      ]"
+                      @update:model-value="doAction()" />
       </div>
-      <div class="col-md-4 col-sm-3 col-xs-12">
-        <q-img width="100px"
-               height="100px"
-               :src="src" />
+      <div class="col-md-6 col-sm-5 col-xs-12">
+        <lazy-img :src="donateImage"
+                  :alt="donateImage"
+                  class="full-width"
+                  width="1"
+                  height="1" />
       </div>
+      <q-inner-loading :showing="cart.loading">
+        <q-spinner-gears size="50px"
+                         color="primary" />
+      </q-inner-loading>
     </div>
   </div>
 </template>
 
 <script>
+import { Product } from 'src/models/Product.js'
+import LazyImg from 'src/components/lazyImg.vue'
+
 export default {
   name: 'Donate',
+  components: { LazyImg },
   props: {
     options: {
       type: Object,
@@ -45,36 +48,73 @@ export default {
   },
   data() {
     return {
+      donate: 'dontHelp',
       helpAlaa: false,
-      donateCost: [{
-        cost: 5000,
-        isActive: false
-      }, {
-        cost: 10000,
-        isActive: false
-      }, {
-        cost: 20000,
-        isActive: false
-      }],
+      disableCostButton: false,
+      donateProductId: 180,
+
+      donateCost: [
+        {
+          cost: 5000,
+          isActive: false
+        }
+        // {
+        //   cost: 10000,
+        //   isActive: false
+        // }, {
+        //   cost: 20000,
+        //   isActive: false
+        // }
+      ],
       src: 'https://nodes.alaatv.com/upload/landing/yalda1400/yalda-landing-modal-emoji-sad.png'
     }
   },
-  methods: {
-    activeDonateCost(idx) {
-      if (!this.helpAlaa) {
-        this.src = 'https://nodes.alaatv.com/upload/landing/yalda1400/yalda-landing-modal-emoji-sad.png'
-      }
-      this.donateCost.forEach(e => {
-        e.isActive = false
-      })
-      if (typeof idx === 'number') {
-        this.donateCost[idx].isActive = true
-        if (idx === 0 || idx === 1) {
-          this.src = 'https://nodes.alaatv.com/upload/landing/yalda1400/yalda-landing-modal-emoji-happy.png'
+  computed: {
+    cart () {
+      return this.$store.getters['Cart/cart']
+    },
+    hasDonate () {
+      return this.cart.order_has_donate
+    },
+    donateImage () {
+      const sadImage = 'https://nodes.alaatv.com/upload/landing/yalda1400/yalda-landing-modal-emoji-sad.png'
+      const happyImage = 'https://nodes.alaatv.com/upload/landing/yalda1400/yalda-landing-modal-emoji-happy.png'
+      return this.hasDonate ? happyImage : sadImage
+    }
+  },
+  watch: {
+    hasDonate: {
+      immediate: true,
+      handler (newValue) {
+        if (newValue) {
+          this.donate = 'doHelp'
         } else {
-          this.src = 'https://nodes.alaatv.com/upload/landing/yalda1400/yalda-landing-modal-emoji-veryHappy.png'
+          this.donate = 'dontHelp'
         }
       }
+    }
+  },
+  methods: {
+    doAction() {
+      if (this.donate === 'doHelp') {
+        this.addDonateToCart()
+      } else {
+        this.removeDonateFromCart()
+      }
+    },
+    removeDonateFromCart() {
+      this.$store.dispatch('Cart/removeItemFromCart', new Product({ id: this.donateProductId }))
+        .then(() => {
+          this.$emit('cartReview')
+        })
+        .catch(() => {})
+    },
+    addDonateToCart() {
+      this.$store.dispatch('Cart/addToCart', { product: new Product({ id: this.donateProductId }) })
+        .then(() => {
+          this.$emit('cartReview')
+        })
+        .catch(() => {})
     }
   }
 }

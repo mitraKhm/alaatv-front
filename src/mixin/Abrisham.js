@@ -3,16 +3,16 @@ import { Content } from 'src/models/Content'
 const mixinAbrisham = {
   methods: {
     syncwatchingContentWithContentInList() {
-      const targetContentIndex = this.contents.list.indexOf(item => item.id === this.watchingContent.id)
-      if (!targetContentIndex) {
+      const targetContentIndex = this.contents.list.findIndex(item => item.id.toString() === this.watchingContent.id.toString())
+      if (typeof targetContentIndex === 'undefined' || targetContentIndex === -1) {
         return false
       }
 
       this.contents.list[targetContentIndex] = new Content(this.watchingContent)
     },
-    toggleFavor() {
-      this.watchingContent.loading = true
-      this.watchingContent.is_favored ? this.setUnfavored() : this.setFavored()
+    toggleFavor(value) {
+      this.watchingContent.is_favored = value
+      this.syncwatchingContentWithContentInList()
     },
     updateVideoStatus(data) {
       const hasWatch = data || this.watchingContent.has_watched
@@ -21,7 +21,7 @@ const mixinAbrisham = {
     },
     async setVideoStatusToWatched() {
       try {
-        await this.$apiGateway.abrisham.setVideoWatched({
+        await this.$apiGateway.content.setVideoWatched({
           watchable_id: this.watchingContent.id,
           watchable_type: 'content'
         })
@@ -34,7 +34,7 @@ const mixinAbrisham = {
     },
     async setVideoStatusToUnwatched() {
       try {
-        await this.$apiGateway.abrisham.setVideoUnWatched({
+        await this.$apiGateway.content.setVideoUnWatched({
           watchable_id: this.watchingContent.id,
           watchable_type: 'content'
         })
@@ -45,33 +45,16 @@ const mixinAbrisham = {
         this.watchingContent.loading = false
       }
     },
-    async setFavored() {
-      try {
-        await this.$apiGateway.abrisham.setVideoFavored(this.watchingContent.id)
-        this.watchingContent.is_favored = true
-        this.watchingContent.loading = false
-        this.syncwatchingContentWithContentInList()
-      } catch {
-        this.watchingContent.loading = false
-      }
-    },
-    async setUnfavored() {
-      try {
-        await this.$apiGateway.abrisham.setVideoUnFavored(this.watchingContent.id)
-        this.watchingContent.is_favored = false
-        this.watchingContent.loading = false
-        this.syncwatchingContentWithContentInList()
-      } catch {
-        this.watchingContent.loading = false
-      }
-    },
     async updateComment(comment) {
       try {
-        const response = await this.$apiGateway.abrisham.updateComment(this.watchingContent.comments[0].id, {
-          comment,
-          _method: 'PUT'
+        const updateCommentResponse = await this.$apiGateway.content.updateComment({
+          id: this.watchingContent.comments[0].id,
+          data: {
+            comment,
+            _method: 'PUT'
+          }
         })
-        this.watchingContent.comments[0].comment = response.data.data.comment
+        this.watchingContent.comments[0].comment = updateCommentResponse.comment
         this.comment = this.watchingContent.comments[0].comment
         this.syncwatchingContentWithContentInList()
       } catch {
@@ -80,14 +63,14 @@ const mixinAbrisham = {
     },
     async saveNewComment(comment) {
       try {
-        const response = await this.$apiGateway.abrisham.saveComment({
+        const savedComment = await this.$apiGateway.content.saveComment({
           commentable_id: this.watchingContent.id,
           commentable_type: 'content',
           comment
         })
         this.watchingContent.comments.push({
-          id: response.data.data.id,
-          comment: response.data.data.comment
+          id: savedComment.id,
+          comment: savedComment.comment
         })
         this.comment = this.watchingContent.comments[0].comment
         this.syncwatchingContentWithContentInList()
@@ -104,7 +87,6 @@ const mixinAbrisham = {
         if (timeStampData.isFavored) {
           postStatus = 'favored'
         }
-        await this.$apiGateway.abrisham.bookmarkPostIsFavored(parseInt(timeStampData.id), postStatus)
         this.watchingContent.timepoints.list.forEach(item => {
           if (parseInt(item.id) === parseInt(timeStampData.id)) {
             item.loading = false

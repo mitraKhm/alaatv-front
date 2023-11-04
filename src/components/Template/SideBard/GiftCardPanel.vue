@@ -25,21 +25,21 @@
         <q-tabs vertical
                 align="center"
                 class="menu-items">
-          <q-route-tab :to="{ name: 'UserPanel.Asset.GiftCard.Dashboard' }"
-                       exact
-                       replace>
-            <svg width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 xmlns="http://www.w3.org/2000/svg">
-              <path d="M9.02 2.84004L3.63 7.04004C2.73 7.74004 2 9.23004 2 10.36V17.77C2 20.09 3.89 21.99 6.21 21.99H17.79C20.11 21.99 22 20.09 22 17.78V10.5C22 9.29004 21.19 7.74004 20.2 7.05004L14.02 2.72004C12.62 1.74004 10.37 1.79004 9.02 2.84004Z"
-                    stroke="white"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round" />
-            </svg>
-          </q-route-tab>
+          <!--          <q-route-tab :to="{ name: 'UserPanel.Asset.GiftCard.Dashboard' }"-->
+          <!--                       exact-->
+          <!--                       replace>-->
+          <!--            <svg width="24"-->
+          <!--                 height="24"-->
+          <!--                 viewBox="0 0 24 24"-->
+          <!--                 fill="none"-->
+          <!--                 xmlns="http://www.w3.org/2000/svg">-->
+          <!--              <path d="M9.02 2.84004L3.63 7.04004C2.73 7.74004 2 9.23004 2 10.36V17.77C2 20.09 3.89 21.99 6.21 21.99H17.79C20.11 21.99 22 20.09 22 17.78V10.5C22 9.29004 21.19 7.74004 20.2 7.05004L14.02 2.72004C12.62 1.74004 10.37 1.79004 9.02 2.84004Z"-->
+          <!--                    stroke="white"-->
+          <!--                    stroke-width="1.5"-->
+          <!--                    stroke-linecap="round"-->
+          <!--                    stroke-linejoin="round" />-->
+          <!--            </svg>-->
+          <!--          </q-route-tab>-->
           <q-route-tab :to="{ name: 'UserPanel.Asset.GiftCard.MyGiftCards' }"
                        exact
                        replace>
@@ -140,8 +140,19 @@
 </template>
 
 <script>
+import { useQuasar } from 'quasar'
 export default {
-  name: 'GiftCardPanel'
+  name: 'GiftCardPanel',
+  data() {
+    return {
+      q: useQuasar()
+    }
+  },
+  beforeMount() {
+    if (this.q.screen.width > 1024) {
+      this.$store.commit('AppLayout/updateLayoutLeftDrawerVisible', true)
+    }
+  }
 }
 </script>
 
@@ -149,8 +160,8 @@ export default {
 .sidebar {
   background: #F5F7FA;
   position: absolute;
-  top: 0;
-  right: 0;
+  top: -10px;
+  right: 10px;
   width: 100%;
   height: 100%;
   .box {
@@ -187,10 +198,21 @@ export default {
           .q-tab {
             min-height: 64px;
             max-height: 64px;
+            .q-tab__indicator {
+              width: 9px;
+              height: 30px;
+              position: absolute;
+              top: 20px;
+              left: -3px;
+              border-radius: 10px;
+            }
           }
         }
       }
     }
+  }
+  @media screen and (max-width: 1024px) {
+    //display: none;
   }
 }
 </style>

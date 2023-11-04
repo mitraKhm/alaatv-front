@@ -5,8 +5,10 @@
       </div>
       <div class="item-info-box row justify-between">
         <div class="info-photo col-sm-2 col-xs-3">
-          <q-img :ratio="1"
-                 :src="rawItem.grand.photo" />
+          <lazy-img :src="rawItem.grand.photo"
+                    :alt="rawItem.grand.title"
+                    width="1"
+                    height="1" />
         </div>
         <div class="info-details col-sm-7 col-xs-7">
           <div class="title">{{ rawItem.grand.title }}</div>
@@ -100,8 +102,9 @@
       </div>
       <div class="item-info-box row justify-between">
         <div class="info-photo col-sm-2 col-xs-3">
-          <q-img :ratio="1"
-                 :src="cartItem.product.photo" />
+          <lazy-img :src="cartItem.product.photo"
+                    width="1"
+                    height="1" />
         </div>
         <div class="info-details col-sm-7 col-xs-7">
           <div class="title">{{ cartItem.product.title }}</div>
@@ -185,13 +188,14 @@
 </template>
 
 <script>
+import LazyImg from 'src/components/lazyImg.vue'
 import { CartItem } from 'src/models/CartItem.js'
 import { OrderProduct } from 'src/models/OrderProduct.js'
 import CartItemsGrandMode from 'src/components/Widgets/CheckoutReview/SideComponents/CartItemsGrandMode.vue'
 
 export default {
   name: 'CartItem',
-  components: { CartItemsGrandMode },
+  components: { LazyImg, CartItemsGrandMode },
   props: {
     rawItem: {
       type: CartItem,
@@ -381,22 +385,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
-.cart-item {
-  .item-info-box {
-    .info-photo {
-      .q-img {
-        border-radius: 10px;
-      }
-    }
-  }
-}
-</style>
 <style lang="scss" scoped>
-* {
-  font-size: 12px;
-}
-
 .cart-item {
   padding: 20px 20px;
 

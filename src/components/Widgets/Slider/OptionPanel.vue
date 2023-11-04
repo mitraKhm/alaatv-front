@@ -76,17 +76,50 @@
               <q-input v-model="selectedSlide.link"
                        label="link" />
             </q-card-section>
+            <q-card-section class="col-6">
+              <div class="cehckBox">
+                <q-checkbox v-model="localOptions.list[selectedBannerIndex].useAEEEvent"
+                            label="استفاده از ایونت GTM"
+                            right-label />
+              </div>
+            </q-card-section>
+            <q-card-section class="col-12">
+              <div v-if="localOptions.list[selectedBannerIndex].useAEEEvent"
+                   class="action-container q-gutter-lg-md">
+                <div>فیلد های مورد نظر ایونت GTM :</div>
+                <div class="col-9">
+                  <div class="outsideLabel">id</div>
+                  <q-input v-model="localOptions.list[selectedBannerIndex].AEEEventBody.id"
+                           label="id" />
+                </div>
+                <div class="col-6">
+                  <div class="outsideLabel">name</div>
+                  <q-input v-model="localOptions.list[selectedBannerIndex].AEEEventBody.name"
+                           label="name" />
+                </div>
+                <div class="col-6">
+                  <div class="outsideLabel">creative</div>
+                  <q-input v-model="localOptions.list[selectedBannerIndex].AEEEventBody.creative"
+                           label="creative" />
+                </div>
+                <div class="col-6">
+                  <div class="outsideLabel">position</div>
+                  <q-input v-model="localOptions.list[selectedBannerIndex].AEEEventBody.position"
+                           label="position" />
+                </div>
+              </div>
+            </q-card-section>
           </div>
-          <div class="row col-12">
-            <q-toggle v-model="isResponsive"
-                      checked-icon="check"
-                      color="green"
-                      label="responsive features"
-                      unchecked-icon="clear" />
+          <div class="singel-image">
+            <q-card-section class="col-12">
+              <h6 class="q-mb-md">تک عکس (singel image)</h6>
+              <banner-preview v-model:banner="selectedSlide"
+                              v-model:options="localOptions"
+                              @update:src="updateSrc" />
+            </q-card-section>
           </div>
-          <q-table v-if="isResponsive"
-                   dir="rtl"
-                   title="جدول رسپانسیو"
+          <q-table dir="rtl"
+                   title="جدول رسپانسیو (multuple images)"
                    :rows="responsiveRows"
                    :columns="responsiveColumns"
                    row-key="name">
@@ -124,14 +157,6 @@
               </q-td>
             </template>
           </q-table>
-          <div v-else>
-            <div class="row col-12">
-              <q-card-section class="col-12">
-                <banner-preview v-model:banner="selectedSlide"
-                                @update:src="updateSrc" />
-              </q-card-section>
-            </div>
-          </div>
         </q-card>
       </q-dialog>
       <q-dialog v-model="expandResponsiveBanner"
@@ -151,6 +176,7 @@
           <div class="col-12 row">
             <q-card-section class="col-12">
               <banner-preview v-model:banner="selectedSlide"
+                              v-model:options="localOptions"
                               :size="selectedResponsiveSize"
                               @update:src="updateSrc" />
             </q-card-section>
@@ -165,8 +191,9 @@
 import { defineComponent } from 'vue'
 import { Banner } from 'src/models/Banner.js'
 import lazyImg from 'src/components/lazyImg.vue'
+import { PageBuilderOptionPanel } from 'src/mixin/Mixins.js'
 import bannerPreview from 'src/components/Widgets/Slider/bannerPreview.vue'
-import { mixinOptionPanel, OptionPanelTabs } from 'quasar-ui-q-page-builder'
+import OptionPanelTabs from 'quasar-ui-q-page-builder/src/components/OptionPanelComponents/OptionPanelTabs.vue'
 
 export default defineComponent({
   name: 'OptionPanel',
@@ -175,7 +202,7 @@ export default defineComponent({
     bannerPreview,
     lazyImg
   },
-  mixins: [mixinOptionPanel],
+  mixins: [PageBuilderOptionPanel],
   data() {
     return {
       windowWidth: 0,
@@ -284,39 +311,7 @@ export default defineComponent({
         }
       ],
       defaultOptions: {
-        features: {
-          xl: {
-            src: '',
-            width: '',
-            height: ''
-          },
-          lg: {
-            src: '',
-            width: '',
-            height: ''
-          },
-          md: {
-            src: '',
-            width: '',
-            height: ''
-          },
-          sm: {
-            src: '',
-            width: '',
-            height: ''
-          },
-          xs: {
-            src: '',
-            width: '',
-            height: ''
-          }
-        },
-        photo: {
-          src: ''
-        },
-        title: '',
-        ratio: 1,
-        link: ''
+        list: []
       }
     }
   },
@@ -324,14 +319,7 @@ export default defineComponent({
     selectedSlide: {
       handler() {
         this.updateBanner()
-      },
-      deep: true
-    },
-    localOptions: {
-      handler(newVal) {
-        this.$emit('update:options', newVal)
-      },
-      deep: true
+      }
     }
   },
   created() {
@@ -350,7 +338,9 @@ export default defineComponent({
       this.localOptions.list.push({
         title: '',
         photo: {
-          src: ''
+          src: '',
+          width: '',
+          height: ''
         },
         features: {
           xl: {
@@ -379,7 +369,14 @@ export default defineComponent({
             height: ''
           }
         },
-        link: ''
+        link: '',
+        useAEEEvent: false,
+        AEEEventBody: {
+          id: '-',
+          name: '-',
+          creative: null,
+          position: null
+        }
       })
       this.rows.push({
         name: rowNumber,
@@ -428,8 +425,7 @@ export default defineComponent({
       }
     },
     updateBanner() {
-      const index = this.localOptions.list.findIndex(banner => banner.title === this.selectedSlide.title)
-      this.localOptions.list[index] = this.selectedSlide
+      this.localOptions.list[this.selectedBannerIndex] = this.selectedSlide
       this.updateTable()
     },
     showFullBanner(index) {
@@ -452,7 +448,9 @@ export default defineComponent({
         })
       })
     },
-    updateSrc(data) {
+    updateSrc (data) {
+      this.localOptions.list[this.selectedBannerIndex].features[data.size].width = data.width
+      this.localOptions.list[this.selectedBannerIndex].features[data.size].height = data.height
       if (data.size) {
         this.localOptions.list[this.selectedBannerIndex].features[data.size].src = data.src
         const index = this.responsiveRows.findIndex(row => row.name === data.size)
@@ -460,6 +458,8 @@ export default defineComponent({
       } else {
         this.localOptions.list[this.selectedBannerIndex].photo.src = data.src
       }
+
+      this.$emit('update:options', this.localOptions)
     }
   }
 })

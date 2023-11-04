@@ -4,15 +4,43 @@
     <div class="show-product-introduction">
       <div class="product-introduction justify-center">
         <div class="intro-features col-md-12">
-          <div class="title">
-            ویژگی های این محصول
+          <div class="title full-width">
+            <span>
+              ویژگی های این محصول
+            </span>
+            <div dir="ltr"
+                 class="float-right share q-mr-lg">
+              <q-btn icon="isax:share"
+                     flat
+                     color="black"
+                     size="14px">
+                <q-tooltip anchor="top middle"
+                           self="bottom middle"
+                           :offset="[10, 10]">
+                  اشتراک گزاری
+                </q-tooltip>
+                <q-popup-proxy :offset="[10, 10]"
+                               transition-show="flip-up"
+                               transition-hide="flip-down">
+                  <q-banner dense
+                            rounded>
+                    <share-network :url="pageUrl"
+                                   @on-select="shareGiftCard" />
+                  </q-banner>
+                </q-popup-proxy>
+              </q-btn>
+              <bookmark :is-favored="product.is_favored"
+                        :loading="bookmarkLoading"
+                        @clicked="handleProductBookmark" />
+            </div>
           </div>
-          <div class="product-info-box row">
+          <div v-if="!product.loading"
+               class="product-info-box row full-width">
             <div v-for="(info, index) in information"
                  :key="index"
                  class="product-info col-grow">
               <div class="product-info-inside q-ma-sm">
-                <div class="info-header ">
+                <div class="info-header">
                   <q-img :src="info.src"
                          class="info-image img" />
                   <p class="info-title">
@@ -22,11 +50,17 @@
                 <div class="info-content">
                   <div v-for="(value , i) in info.value"
                        :key="i"
-                       class="info-value col-6">
-                    <span v-if="value">{{ value }}</span>
-                    <span v-else>
-                      <q-skeleton width="100px" />
-                    </span>
+                       class="info-value">
+                    <template v-if="!product.loading">
+                      <span v-if="value"
+                            class="ellipsis value-span">
+                        {{ value }}
+                      </span>
+                      <span v-else>-</span>
+                    </template>
+                    <q-skeleton v-else
+                                type="text"
+                                width="70px" />
                   </div>
                 </div>
               </div>
@@ -40,12 +74,16 @@
 
 <script>
 import { Product } from 'src/models/Product.js'
-import { mixinWidget } from 'src/mixin/Mixins'
-import { APIGateway } from 'src/api/APIGateway'
+import { APIGateway } from 'src/api/APIGateway.js'
+import Bookmark from 'src/components/Bookmark.vue'
+import ShareNetwork from 'src/components/ShareNetwork.vue'
+import { AEE } from 'src/assets/js/AEE/AnalyticsEnhancedEcommerce.js'
+import { mixinWidget, mixinPrefetchServerData } from 'src/mixin/Mixins.js'
 
 export default {
   name: 'ProductInfoShow',
-  mixins: [mixinWidget],
+  components: { Bookmark, ShareNetwork },
+  mixins: [mixinWidget, mixinPrefetchServerData],
   props: {
     options: {
       type: Object,
@@ -61,8 +99,11 @@ export default {
   },
   data() {
     return {
-      samplePhotosIndex: null,
+      bookmarkLoading: false,
       product: new Product(),
+      samplePhotosIndex: null,
+      isFavored: false,
+      // product: new Product(),
       introduction: {
         intro: null,
         attributes: null,
@@ -72,25 +113,25 @@ export default {
       information: [
         {
           key: 'teacher',
-          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-teacher.png\n',
+          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-teacher.png',
           title: 'مدرس',
           value: []
         },
         {
           key: 'production_year',
-          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-calendar.png\n',
+          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-calendar.png',
           title: 'سال تولید',
           value: []
         },
         {
           key: 'major',
-          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-book.png\n',
+          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-book.png',
           title: 'رشته',
           value: []
         },
         {
           key: 'shipping_method',
-          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-document-download.png\n',
+          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-document-download.png',
           title: 'مدل دریافت',
           value: []
         }
@@ -106,6 +147,23 @@ export default {
       }
     }
   },
+  computed: {
+    productId () {
+      if (typeof this.options.productId !== 'undefined' && this.options.productId !== null) {
+        return this.options.productId
+      }
+      if (this.options.urlParam && this.$route.params[this.options.urlParam]) {
+        return this.$route.params[this.options.urlParam]
+      }
+      if (this.$route.params.id) {
+        return this.$route.params.id
+      }
+      return this.product.id
+    },
+    pageUrl() {
+      return window.location.href
+    }
+  },
   watch: {
     // options: {
     //   handler() {
@@ -119,7 +177,7 @@ export default {
       } else {
         this.information.splice(0, 0, {
           key: 'teacher',
-          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-teacher.png\n',
+          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-teacher.png',
           title: 'مدرس',
           value: this.product.attributes.info.teacher
         })
@@ -131,7 +189,7 @@ export default {
       } else {
         this.information.splice(2, 0, {
           key: 'major',
-          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-book.png\n',
+          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-book.png',
           title: 'رشته',
           value: this.product.attributes.info.major
         })
@@ -143,7 +201,7 @@ export default {
       } else {
         this.information.splice(1, 0, {
           key: 'production_year',
-          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-calendar.png\n',
+          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-calendar.png',
           title: 'سال تولید',
           value: this.product.attributes.info.production_year
         })
@@ -155,51 +213,57 @@ export default {
       } else {
         this.information.splice(3, 0, {
           key: 'shipping_method',
-          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-document-download.png\n',
+          src: 'https://nodes.alaatv.com/upload/landing/28/modal/landing-taftan-modal-document-download.png',
           title: 'مدل دریافت',
           value: this.product.attributes.info.shipping_method
         })
       }
     }
   },
-  created() {
-    this.loadProduct()
-  },
   methods: {
-    getProductId() {
-      if (this.options.productId) {
-        return this.options.productId
-      }
-      if (this.options.urlParam && this.$route.params[this.options.urlParam]) {
-        return this.$route.params[this.options.urlParam]
-      }
-      if (this.$route.params.id) {
-        return this.$route.params.id
-      }
-      return null
-    },
-    loadProduct() {
-      const productId = this.getProductId()
-      if (!productId) {
+    handleProductBookmark () {
+      this.bookmarkLoading = true
+      if (this.product.is_favored) {
+        this.$apiGateway.product.unfavored(this.product.id)
+          .then(() => {
+            this.product.is_favored = !this.product.is_favored
+            this.bookmarkLoading = false
+          })
+          .catch(() => {
+            this.bookmarkLoading = false
+          })
         return
       }
-
-      this.getProduct(productId)
-    },
-    getProduct(productId) {
-      this.product.loading = true
-      APIGateway.product.show({
-        data: { id: productId },
-        cache: { TTL: 10000 }
-      })
-        .then(product => {
-          this.product = new Product(product)
-          this.product.loading = false
-          this.setInformation()
+      this.$apiGateway.product.favored(this.product.id)
+        .then(() => {
+          this.product.is_favored = !this.product.is_favored
+          this.bookmarkLoading = false
         })
         .catch(() => {
-          this.product.loading = false
+          this.bookmarkLoading = false
         })
+    },
+    prefetchServerDataPromise () {
+      this.product.loading = true
+      return this.getProduct()
+    },
+    prefetchServerDataPromiseThen (data) {
+      this.product = new Product(data)
+      this.isFavored = this.product.is_favored_2
+      this.setInformation()
+      if (window) {
+        this.updateEECEventDetail()
+      }
+      this.$nextTick(() => {
+        this.product.loading = false
+      })
+    },
+    prefetchServerDataPromiseCatch () {
+      this.product.loading = false
+    },
+
+    getProduct() {
+      return APIGateway.product.show(this.productId)
     },
 
     setInformation() {
@@ -214,6 +278,15 @@ export default {
         if (findingAttribute) {
           info.value = this.product.attributes.info[findingAttribute]
         }
+      })
+    },
+    shareGiftCard({ name, url }) {
+      window.open(url, '_blank')
+    },
+    updateEECEventDetail() {
+      AEE.productDetailViews('product.show', this.product.eec.getData(), {
+        TTl: 1000,
+        key: this.product.id
       })
     }
   }
@@ -257,7 +330,6 @@ p {
   .intro-features {
     display: flex;
     flex-direction: column;
-    padding: 0 20px;
     align-items: center;
     @media screen and(max-width: 599px) {
       padding: 0;
@@ -279,10 +351,12 @@ p {
         font-weight: bold;
         line-height: 10px;
       }
+      .share {
+        top: 50px;
+      }
     }
 
     .product-info-box {
-      display: flex;
       margin-bottom: 20px;
 
       .product-info {
@@ -295,7 +369,6 @@ p {
           flex-direction: column;
           align-items: center;
           width: 120px;
-          height: 156px;
           background: #FFFFFF;
           box-shadow: -2px -4px 10px rgba(255, 255, 255, 0.6), 2px 4px 10px rgba(54, 90, 145, 0.05);
           border-radius: 15px;
@@ -337,12 +410,19 @@ p {
           }
 
           .info-content {
+            height: 30%;
             display: flex;
             flex-wrap: wrap;
             padding: 10px;
 
             .info-value {
               text-align: center;
+              align-self: center;
+
+              .value-span {
+                display: inline-block;
+                max-width: 110px;
+              }
 
               &:after {
                 content: '-';

@@ -1,12 +1,20 @@
 <template>
   <div>
+    <div class="lt-sm flex justify-end">
+      <q-btn flat
+             color="grey"
+             :to="{name: 'UserPanel.Dashboard'}">
+        <q-icon name="isax:layer"
+                class="q-mr-sm" />
+        >
+      </q-btn>
+    </div>
     <div v-if="loading"
          class="flex justify-center q-mt-xl">
       <q-spinner-ball color="primary"
                       size="2em" />
     </div>
-    <template v-if="!loading">
-      <div style="display: none"> {{windowSize}}</div>
+    <template v-else>
       <div v-if="!hasUserOrdered">
         <div class="empty-order-list">
           <q-img class="image"
@@ -19,34 +27,35 @@
                    flat
                    :color="'primary'"
                    label="رفتن به فروشگاه"
-                   :to="{name:'Landing.3aExams'}" />
+                   :to="{name:'Public.Shop'}" />
           </div>
         </div>
       </div>
       <div v-else
            class="my-orders-list">
         <div class="title">
-          سفارش های من</div>
+          سفارش های من
+        </div>
         <entity-index ref="orderList"
                       v-model:value="inputs"
                       class="orders-list-entity-index"
-                      title="سفارش های من"
                       :api="getEntityApi"
                       :table="table"
                       :table-keys="tableKeys"
                       :default-layout="false"
                       :table-grid-size="$q.screen.lt.md"
-                      :create-route-name="'Admin.Exam.Create'"
+                      :show-expand-button="false"
+                      :show-reload-button="false"
+                      :show-search-button="false"
                       @onPageChanged="onPageChange">
           <template v-slot:before-index-table="">
             <div class="row items-center search-box">
               <div class="col-lg-4 col-xl-4 col-sm-6 col-xs-9 text-left">
                 <q-input v-model="searchInput"
-                         filled
                          placeholder="جستجو..."
-                         class="search-input bg-white">
+                         class="no-title">
                   <template v-slot:append>
-                    <q-icon name="isax:search-normal-1"
+                    <q-icon name="ph:magnifying-glass"
                             class="search-icon"
                             @click="filterFormBuilderData" />
                   </template>
@@ -62,9 +71,7 @@
             </div>
             <q-expansion-item v-model="filterExpanded"
                               icon="perm_identity"
-                              class="expand-filter"
-                              label="Account settings"
-                              caption="John Doe">
+                              class="expand-filter">
               <div class="row filter-items">
                 <div class="col-12">
                   <form-builder ref="filterSlot"
@@ -74,155 +81,67 @@
               </div>
             </q-expansion-item>
           </template>
-          <template #table-cell="{inputData}">
-            <q-td :props="inputData.props">
-              <template v-if="inputData.props.col.name === 'details'">
-                <q-btn round
-                       flat
-                       dense
-                       size="md"
-                       @click="showDetailsDialog(inputData.props.row)">
-                  <!--              <q-tooltip anchor="top middle"-->
-                  <!--                         self="bottom middle">-->
-                  <!--                مشاهده-->
-                  <!--              </q-tooltip>-->
-                  <svg width="24"
-                       height="24"
-                       viewBox="0 0 24 24"
-                       fill="none"
-                       xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12"
-                            cy="6"
-                            r="2"
-                            fill="#6D708B" />
-                    <circle cx="12"
-                            cy="12"
-                            r="2"
-                            fill="#6D708B" />
-                    <circle cx="12"
-                            cy="18"
-                            r="2"
-                            fill="#6D708B" />
-                  </svg>
-                </q-btn>
-              </template>
-              <template v-else>
-                {{ inputData.props.value }}
-              </template>
-            </q-td>
+          <template #entity-index-table-cell="{inputData}">
+            <template v-if="inputData.col.name === 'details'">
+              <q-btn round
+                     flat
+                     dense
+                     icon="ph:dots-three-vertical"
+                     size="md"
+                     @click="showDetailsDialog(inputData.props.row)" />
+            </template>
+            <template v-else>
+              {{ inputData.col.value }}
+            </template>
           </template>
-          <template v-slot:table-item-cell="{inputData}">
-            <q-card class="details-table-mobile">
-              <div class="details-info">
-                <div class="item">
-                  <div class="order first-col-item">
-                    شماره سفارش:
-                    <span class="order-id">{{inputData.props.row.id}}</span>
-                  </div>
-                  <div class="details-btn toggle"
-                       @click="toggleDetailsCard(inputData.props.row)">
-                    جزئیات
-                    <q-icon color="primary"
-                            :name="detailsCardToggle[inputData.props.row.id] ? 'isax:arrow-up-2' : 'isax:arrow-down-1' " />
-                  </div>
-                  <div class="details-btn dialog"
-                       @click="showDetailsDialog(inputData.props.row)">
-                    مشاهده جزییات
-                  </div>
+          <template #entity-index-table-item-cell="{inputData}">
+            <q-card class="EntityIndexGridItem q-mb-md">
+              <q-card-section v-if="inputData.props?.cols && inputData.props.cols.length > 0">
+                <div v-for="(col, colIndex) in inputData.props.cols"
+                     :key="colIndex"
+                     class="table-column">
+                  <template v-if="col.name === 'details'">
+                    <q-btn label="جزییات"
+                           color="primary"
+                           size="md"
+                           @click="showDetailsDialog(inputData.props.row)" />
+                  </template>
+                  <template v-else>
+                    <span class="label"
+                          v-html="col.label" />:
+                    <span class="value"
+                          v-html="col.field(inputData.props.row)" />
+                  </template>
                 </div>
-                <div class="item">
-                  <div class="first-col-item">وضعیت پرداخت:</div>
-                  <div :class="{ 'payment-not-okay' : inputData.props.row.paymentstatus.id === 1 ,
-                                 'payment-okay' : inputData.props.row.paymentstatus.id === 3 ,
-                                 'payment-installment' : inputData.props.row.paymentstatus.id === 4 }">
-                    <!--                پرداخت نشده-->
-                    {{inputData.props.row.paymentstatus.name}}
-                  </div>
-                </div>
-                <div class="item">
-                  <div class="first-col-item">مبلغ:</div>
-                  <div class="value">
-                    {{inputData.props.row.price ? toman(inputData.props.row.price) : 0 }}
-                  </div>
-                </div>
-                <div class="item">
-                  <div class="first-col-item">تاریخ سفارش:</div>
-                  <div class="value">
-                    {{ getCurrentOrderCompletedAt(inputData.props.row.completed_at) }}
-                    <!--                {{ getCurrentOrderCompletedAt('1401/09/25') }}-->
-                  </div>
-                </div>
-                <!--              <div class="first-col">-->
-                <!--                <div class="order first-col-item">-->
-                <!--                  شماره سفارش:-->
-                <!--                  <span class="order-id">{{inputData.props.row.id}}</span>-->
-                <!--                </div>-->
-                <!--                <div class="first-col-item">وضعیت پرداخت:</div>-->
-                <!--                <div class="first-col-item">مبلغ:</div>-->
-                <!--                <div class="first-col-item">تاریخ سفارش:</div>-->
-                <!--              </div>-->
-                <!--              <div class="second-col">-->
-                <!--                <q-btn round-->
-                <!--                       flat-->
-                <!--                       dense-->
-                <!--                       size="md"-->
-                <!--                       class="details-btn"-->
-                <!--                       @click="toggleDetailsCard(inputData.props.row)"-->
-                <!--                >-->
-                <!--                  جزئیات-->
-                <!--                  <q-icon color="primary"-->
-                <!--                          :name="detailsCardToggle[inputData.props.row.id] ? 'isax:arrow-up-2' : 'isax:arrow-down-1' " />-->
-                <!--                </q-btn>-->
-                <!--                <div class="min-h"-->
-                <!--                     :class="{ 'payment-not-okay' : inputData.props.row.paymentstatus.id === 1 ,-->
-                <!--                               'payment-okay' : inputData.props.row.paymentstatus.id === 3 ,-->
-                <!--                               'payment-installment' : inputData.props.row.paymentstatus.id === 4 }"-->
-                <!--                >-->
-                <!--                  &lt;!&ndash;                پرداخت نشده&ndash;&gt;-->
-                <!--                  {{inputData.props.row.paymentstatus.name}}-->
-                <!--                </div>-->
-                <!--                <div class="min-h">-->
-                <!--                  {{inputData.props.row.price ? toman(inputData.props.row.price) : 0 }}-->
-                <!--                </div>-->
-                <!--                <div class="min-h">-->
-                <!--                  {{ getCurrentOrderCompletedAt(inputData.props.row.completed_at) }}-->
-                <!--                  &lt;!&ndash;                {{ getCurrentOrderCompletedAt('1401/09/25') }}&ndash;&gt;-->
-                <!--                </div>-->
-                <!--              </div>-->
-              </div>
-              <order-details-card v-if="windowSize.x < 600"
-                                  v-model:toggleValue="detailsCardToggle[inputData.props.row.id]"
-                                  :order="currentOrder" />
+              </q-card-section>
             </q-card>
           </template>
         </entity-index>
       </div>
-      <order-details-dialog v-if="windowSize.x >= 600"
-                            v-model:dialogValue="detailsDialog"
+      <order-details-dialog v-model:dialogValue="detailsDialog"
                             :order="currentOrder" />
     </template>
   </div>
 </template>
 
 <script>
+import { shallowRef } from 'vue'
 import moment from 'moment-jalaali'
-// import { EntityIndex } from 'quasar-crud'
-import EntityIndex from 'quasar-crud/src/components/Entity/Index/EntityIndex.vue'
 import { User } from 'src/models/User.js'
 import { Order } from 'src/models/Order.js'
-import API_ADDRESS from 'src/api/Addresses.js'
-import { shallowRef } from 'vue'
-// import { FormBuilder } from 'quasar-form-builder'
+import { APIGateway } from 'src/api/APIGateway'
 import FormBuilder from 'quasar-form-builder/src/FormBuilder.vue'
-import ActionBtnComponent from 'components/Utils/actionBtn.vue'
+import ActionBtnComponent from 'src/components/Utils/actionBtn.vue'
+// import OrderDetailsCard from 'src/components/UserOrders/OrderDetailsCard.vue'
+import OrderDetailsDialog from 'src/components/UserOrders/OrderDetailsDialog.vue'
+import EntityIndex from 'quasar-crud/src/components/Entity/Index/EntityIndex.vue'
+
 const ActionBtn = shallowRef(ActionBtnComponent)
-import OrderDetailsCard from 'components/UserOrders/OrderDetailsCard.vue'
-import OrderDetailsDialog from 'components/UserOrders/OrderDetailsDialog.vue'
 
 export default {
   name: 'MyOrders',
   components: {
-    OrderDetailsCard,
+    // OrderDetailsCard,
     FormBuilder,
     OrderDetailsDialog,
     EntityIndex
@@ -239,10 +158,35 @@ export default {
         { type: 'hidden', name: 'search', responseKey: 'search', col: 'col-12 col-lg-12 col-sm-6' }
       ],
       filterInputs: [
-        { type: 'select', name: 'paymentStatuses', dropdownIcon: 'isax:arrow-down-1', optionValue: 'id', optionLabel: 'name', responseKey: 'paymentStatuses', multiple: true, label: 'وضعیت پرداخت', placeholder: ' ', col: 'filter-option col-sm-6 col-lg-4 col-xs-12' },
-        { type: 'date', name: 'since', responseKey: 'since', label: 'تاریخ سفارش', placeholder: ' از', calendarIcon: ' ', col: 'col-lg-3 col-sm-6 col-xs-12' },
-        { type: 'date', name: 'till', label: ' ', placeholder: 'تا', calendarIcon: ' ', responseKey: 'till', col: 'col-lg-3 col-sm-6 col-xs-12' },
-        { type: ActionBtn, name: 'ActionBtn', col: 'col-lg-2 col-sm-6 col-xs-12' }
+        {
+          type: 'select',
+          name: 'paymentStatuses',
+          optionValue: 'id',
+          optionLabel: 'name',
+          multiple: true,
+          label: 'وضعیت پرداخت',
+          col: 'filter-option col-sm-6 col-lg-4 col-xs-12'
+        },
+        {
+          type: 'date',
+          name: 'since',
+          responseKey: 'since',
+          label: 'تاریخ سفارش از',
+          placeholder: ' از',
+          col: 'col-lg-3 col-sm-6 col-xs-12'
+        },
+        {
+          type: 'date',
+          name: 'till',
+          label: 'تاریخ سفارش تا',
+          placeholder: 'تا',
+          col: 'col-lg-3 col-sm-6 col-xs-12'
+        },
+        {
+          type: ActionBtn,
+          name: 'ActionBtn',
+          col: 'col-lg-2 col-sm-6 col-xs-12 q-mt-lg'
+        }
       ],
       searchInput: '',
       table: {
@@ -256,12 +200,16 @@ export default {
           },
           {
             name: 'paymentstatus',
-            // name: 'payment_status',
             required: true,
             label: 'وضعیت ‌پرداخت',
             align: 'left',
             field: row => row.paymentstatus.name,
-            classes: row => row.paymentstatus.id === 1 ? 'payment-not-okay' : row.paymentstatus.id === 3 ? 'payment-okay' : row.paymentstatus.id === 4 ? 'payment-installment' : ''
+            classes: row => {
+              if (!row) {
+                return ''
+              }
+              return row.paymentstatus.id === 1 ? 'payment-not-okay' : row.paymentstatus.id === 3 ? 'payment-okay' : row.paymentstatus.id === 4 ? 'payment-installment' : ''
+            }
           },
           {
             name: 'price',
@@ -281,8 +229,7 @@ export default {
             name: 'details',
             required: true,
             label: 'جزئیات',
-            align: 'left',
-            field: row => row.actions
+            align: 'left'
           }
         ],
         data: []
@@ -318,7 +265,7 @@ export default {
       return this.getInput('filterInputs', 'till').value
     },
     getEntityApi() {
-      return API_ADDRESS.user.orders.ordersById(this.user.id)
+      return APIGateway.user.APIAdresses.ordersById(this.user.id)
     },
     windowSize () {
       return this.$store.getters['AppLayout/windowSize']
@@ -343,7 +290,7 @@ export default {
       this.updateInputsValue('search', value)
     }
   },
-  created() {
+  mounted () {
     this.getPaymentStatus()
   },
   methods: {
@@ -386,8 +333,8 @@ export default {
     },
     async getPaymentStatus() {
       try {
-        const response = await this.$axios.get(API_ADDRESS.user.orders.status)
-        this.getInput('filterInputs', 'paymentStatuses').options = response.data.data
+        const paymentStatus = await APIGateway.order.getPaymentStatus(this.user.id)
+        this.getInput('filterInputs', 'paymentStatuses').options = paymentStatus
         this.loading = false
       } catch (e) {
         this.loading = false
@@ -445,6 +392,106 @@ export default {
 <style scoped lang="scss">
 .my-orders-list{
   margin-bottom: 200px;
+  :deep(.entity-index) {
+    .q-expansion-item {
+      .q-expansion-item__container {
+        .expand-filter{
+          &:deep(.q-item-type){
+            display: none;
+          }
+          .filter-items{
+            font-weight: 400!important;
+            font-size: 16px;
+            line-height: 25px;
+            letter-spacing: -0.03em;
+            color: #434765;
+            margin-bottom: 30px;
+            position: relative;
+            @media screen and (max-width: 1439px){
+              margin-bottom: 24px;
+            }
+
+            @media screen and (max-width: 599px){
+              margin-bottom: 20px;
+            }
+
+            &:deep(.filter-option){
+              .outsideLabel{
+                //padding-bottom: 8px;
+              }
+              @media screen and (max-width: 1439px) {
+                order: 3;
+              }
+              @media screen and (max-width: 599px) {
+                padding-left: 16px;
+                padding-right: 0;
+              }
+            }
+            &:deep(.till){
+              padding-top: 40px;
+              @media screen and (max-width: 599px) {
+                padding: 1px;
+              }
+            }
+            &:deep(.since){
+              .outsideLabel{
+                padding-bottom: 8px;
+              }
+              &:deep(.q-icon){
+                &::before{
+                  content: '';
+                }
+              }
+              @media screen and (max-width: 599px) {
+                padding: 1px 1px 8px;
+              }
+              @media screen and (max-width: 1439px) {
+
+              }
+            }
+            &:deep(.formBuilder-actionBtn-ActionBtn){
+              @media screen and (max-width: 1439px){
+                text-align: right;
+                order:3
+              }
+            }
+            .action-btn{
+              @media screen and (max-width: 1439px) {
+                position: absolute;
+                bottom: 0;
+                margin-top:10px;
+              }
+              @media screen and (max-width: 599px){
+                position: relative;
+              }
+            }
+            .select-input{
+
+            }
+            .filter-inputs{
+              @media screen and (max-width: 1439px) {
+                order: 1;
+              }
+            }
+            .filter-btn{
+              font-weight: 600;
+              font-size: 14px;
+              line-height: 22px;
+              letter-spacing: -0.03em;
+              color: #FFFFFF;
+            }
+            .reload-icon{
+              color: #6D708B;
+              margin-right: 16px;
+            }
+          }
+        }
+        .q-item {
+          display: none;
+        }
+      }
+    }
+  }
 }
 .filter-toggle{
   color:#6D708B;
@@ -458,121 +505,7 @@ export default {
     margin-bottom: 20px;
   }
 }
-.expand-filter{
-  &:deep(.q-item-type){
-    display: none;
-  }
-  .filter-option{
 
-  }
-  .filter-items{
-    font-weight: 400!important;
-    font-size: 16px;
-    line-height: 25px;
-    letter-spacing: -0.03em;
-    color: #434765;
-    margin-bottom: 30px;
-    position: relative;
-    @media screen and (max-width: 1439px){
-      margin-bottom: 24px;
-    }
-
-    @media screen and (max-width: 599px){
-      margin-bottom: 20px;
-    }
-
-    &:deep(.filter-option){
-      .outsideLabel{
-        padding-bottom: 8px;
-      }
-      @media screen and (max-width: 1439px) {
-        order: 3;
-      }
-      @media screen and (max-width: 599px) {
-        padding-left: 16px;
-        padding-right: 0;
-      }
-    }
-    &:deep(.till){
-      padding-top: 40px;
-      @media screen and (max-width: 599px) {
-        padding: 1px;
-      }
-    }
-    &:deep(.since){
-      .outsideLabel{
-        padding-bottom: 8px;
-      }
-      &:deep(.q-icon){
-        &::before{
-          content: '';
-        }
-      }
-      @media screen and (max-width: 599px) {
-        padding: 1px 1px 8px;
-      }
-      @media screen and (max-width: 1439px) {
-
-      }
-    }
-    &:deep(.formBuilder-actionBtn-ActionBtn){
-      @media screen and (max-width: 1439px){
-        text-align: right;
-        order:3
-      }
-    }
-    .action-btn{
-      @media screen and (max-width: 1439px) {
-        position: absolute;
-        bottom: 0;
-        margin-top:10px;
-      }
-      @media screen and (max-width: 599px){
-        position: relative;
-      }
-    }
-    .select-input{
-
-    }
-    .filter-inputs{
-      @media screen and (max-width: 1439px) {
-        order: 1;
-      }
-    }
-    .filter-btn{
-      font-weight: 600;
-      font-size: 14px;
-      line-height: 22px;
-      letter-spacing: -0.03em;
-      color: #FFFFFF;
-    }
-    .reload-icon{
-      color: #6D708B;
-      margin-right: 16px;
-    }
-  }
-}
-.search-input{
-  background-color: white;
-  //border-radius: 8px;
-  //border: none;
-  &:deep(.q-field__append){
-    .q-icon{
-      color: #6D708B;
-      cursor: pointer;
-    }
-  }
-  .search-icon{
-
-  }
-  &:deep(.q-field__control){
-    //q-field__native, .q-field__prefix, .q-field__suffix, .q-field__input
-    background-color: white;
-  }
-  &:deep(.q-field__append){
-
-  }
-}
 .my-orders-list {
   .title {
     font-style: normal;
@@ -618,7 +551,6 @@ export default {
     padding: 0 !important;
 
     .q-table__container {
-      background: #FFFFFF;
       box-shadow: -2px -4px 10px rgba(255, 255, 255, 0.6), 2px 4px 10px rgba(112, 108, 162, 0.05);
       border-radius: 16px;
       @media screen and (max-width: 599px) {
@@ -833,6 +765,7 @@ export default {
   }
 }
 </style>
+
 <style>
 .q-table thead, .q-table tr, .q-table th, .q-table td {
   border-color: transparent;

@@ -1,33 +1,63 @@
-import API_ADDRESS from 'src/api/Addresses'
 import { TicketDepartmentList } from 'src/models/TicketDepartment'
 import { User } from 'src/models/User'
+import { APIGateway } from 'src/api/APIGateway'
+import { TicketPriorityList } from 'src/models/TicketPriority'
+import { TicketStatusList } from 'src/models/TicketStatus'
 
 const mixinTicket = {
   data: () => ({
     loading: false,
+    sendLoading: false,
     departmentList: new TicketDepartmentList(),
+    ticketStatusList: new TicketStatusList(),
+    ticketPriorityList: new TicketPriorityList(),
     ticketStatuses: [],
     ticketPriorityOption: []
   }),
   computed: {
-    isAdmin() {
-      // return this.$store.getters['Auth/user'].has_admin_permission
-      return true
+    isInAdminPage() {
+      return !!this.$route.name.includes('Admin')
     }
   },
-  created() {
-    this.setPageData()
+  mounted() {
+    this.setUpTicket()
   },
   methods: {
+    async setUpTicket() {
+      await this.initTicket()
+      await this.setPageData()
+      await this.afterGetAllPageData()
+    },
+    async initTicket() {
+      // here goes the custom methods developer chooses to run before mixin
+    },
+    async afterGetAllPageData() {
+      // here goes the custom methods developer chooses to run after get all page data
+    },
     async setPageData() {
       // this.setRoleAndPermissions()
       this.loading = true
-      try {
-        await Promise.all([this.setDepartments(), this.setStatuses(), this.setPriorityOption()])
-        this.loading = false
-      } catch {
-        this.loading = false
-      }
+      this.getTicketData()
+        .then((ticketFields) => {
+          this.ticketStatusList = new TicketStatusList(ticketFields.statuses)
+          this.departmentList = new TicketDepartmentList(ticketFields.departments)
+          this.ticketPriorityList = new TicketPriorityList(ticketFields.priorities)
+
+          this.ticketStatuses = this.ticketStatusList.list
+          this.ticketPriorityOption = this.ticketPriorityList.list
+
+          this.loading = false
+        })
+        .catch(() => {
+          this.loading = false
+        })
+
+      // try {
+      //   await Promise.all([this.setDepartments(), this.setStatuses(), this.setPriorityOption()])
+      //   this.loading = false
+      // } catch {
+      //   this.loading = false
+      // }
     },
 
     async setStatuses() {
@@ -81,6 +111,10 @@ const mixinTicket = {
         label: 'بحرانی',
         value: '4'
       }]
+    },
+
+    getTicketData() {
+      return APIGateway.ticket.getNeededDataToCreateTicket()
     },
 
     getDepartments() {
@@ -464,7 +498,7 @@ const mixinTicket = {
       ].filter(item => item.display === 1)
     },
 
-    sendTicket (data, isMsg) {
+    sendTicket(data, isMsg) {
       if (!isMsg && !this.hasRequiredField()) {
         return
       }
@@ -476,17 +510,18 @@ const mixinTicket = {
       this.sendTicket(data, true)
     },
 
-    async sendCreateTicketReq (formData) {
+    async sendCreateTicketReq(formData) {
       this.loading = true
       try {
-        const response = await this.$apiGateway.ticket.creatTicket(formData)
+        const response = await APIGateway.ticket.creatTicket(formData)
         if (this.$refs.SendMessageInput) {
           this.$refs.SendMessageInput.clearMessage()
         }
         this.showMessagesInNotify(['تیکت شما با موفقیت ایجاد شد'], 'positive')
         this.loading = false
+        const showRouteName = this.isInAdminPage ? 'Admin.Ticket.Show' : 'UserPanel.Ticket.Show'
         await this.$router.push({
-          name: 'Admin.Ticket.Show',
+          name: showRouteName,
           params: { id: response.data.data.id }
         })
       } catch {
@@ -497,8 +532,7 @@ const mixinTicket = {
     async sendTicketMsg(formData) {
       this.loading = true
       try {
-        // const response = await this.callSendTicketMsgApi(formData)
-        const response = await this.$apiGateway.ticket.sendTicketMessage(formData)
+        const response = await APIGateway.ticket.sendTicketMessage(formData)
         this.userMessageArray.unshift(response.data.data.ticketMessage)
         if (this.$refs.SendMessageInput) {
           this.$refs.SendMessageInput.clearMessage()
@@ -552,10 +586,6 @@ const mixinTicket = {
       return this.$apiGateway.ticket.updateTicket(ticketId, payloadData)
     },
 
-    callCreatTicketApi (formData) {
-      return this.$axios.post(API_ADDRESS.ticket.create.base, formData)
-    },
-
     async getUserInfo() {
       const payload = {
         mobile: this.phoneNumber,
@@ -563,73 +593,19 @@ const mixinTicket = {
       }
       this.loading = true
       try {
-        // const payload = {
-        //   mobile: '09388131193',
-        //   nationalCode: '4900443050'
-        // }
-        // this.$axios.post(API_ADDRESS.ticket.user.getInfo, payload)
         this.user = await this.$apiGateway.ticket.getUserData(payload)
         this.loading = false
       } catch {
         this.loading = false
-        this.user = new User({
-          id: 1204622,
-          first_name: 'میترا',
-          last_name: 'زلفی خرم',
-          name_slug: null,
-          mobile: '09388131193',
-          mobile_verified_at: '2021-12-09 02:21:42',
-          national_code: '4900443050',
-          photo: 'https://nodes.alaatv.com/upload/images/profile/1639488191_2782.jpg',
-          kartemeli: null,
-          province: null,
-          city: null,
-          address: 'یسبسبسللسبسیبیلسییلی',
-          postal_code: null,
-          school: null,
-          email: null,
-          bio: null,
-          info: null,
-          major: {
-            id: 2,
-            name: 'تجربی',
-            title: 'تجربی',
-            selected: false
-          },
-          grade: {
-            id: 1,
-            name: 'دهم',
-            title: 'دهم'
-          },
-          gender: {
-            id: 2,
-            name: 'خانم',
-            title: 'خانم'
-          },
-          profile_completion: 88,
-          wallet_balance: 0,
-          updated_at: '2022-05-23 07:59:18',
-          created_at: '2021-05-17 23:25:19',
-          edit_profile_url: null,
-          birthdate: '1995-06-15T00:00:00.000000Z',
-          has_purchased_anything: true,
-          shahr: {
-            id: 1378,
-            title: 'ملارد'
-          }
-        })
+        this.user = new User()
       }
     },
 
-    callSendTicketMsgApi(formData) {
-      return this.$axios.post(API_ADDRESS.ticket.show.ticketMessage, formData)
-    },
-
-    setTicketFormData (data, isMsg) {
+    setTicketFormData(data, isMsg) {
       const formData = new FormData()
 
       if (data.resultURL) {
-        formData.append('photo', this.createBlob(data.resultURL))
+        formData.append('photo', data.resultURL)
         formData.append('body', data.caption)
       }
 
@@ -664,7 +640,7 @@ const mixinTicket = {
       return formData
     },
 
-    hasRequiredField () {
+    hasRequiredField() {
       const errorMessages = []
       if (!this.getInputsValue('title')) {
         errorMessages.push('پر کردن فیلد عنوان ضروری میباشد')
@@ -677,7 +653,7 @@ const mixinTicket = {
       return !errorMessages.length > 0
     },
 
-    getInputsValue (inputName, source) {
+    getInputsValue(inputName, source) {
       const input = this.getInput(inputName, source)
       if (!input) {
         return false
@@ -690,7 +666,7 @@ const mixinTicket = {
       return srcFilter.find(input => input.name === inputName)
     },
 
-    createBlob (dataURL) {
+    createBlob(dataURL) {
       const BASE64_MARKER = ';base64,'
       if (dataURL.indexOf(BASE64_MARKER) === -1) {
         const parts = dataURL.split(',')
@@ -712,7 +688,7 @@ const mixinTicket = {
       return new Blob([uInt8Array], { type: contentType })
     },
 
-    showMessagesInNotify (messages, type) {
+    showMessagesInNotify(messages, type) {
       messages.forEach((message) => {
         this.$q.notify({
           type: type || 'negative',

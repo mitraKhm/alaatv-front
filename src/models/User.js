@@ -1,13 +1,12 @@
 /* eslint-disable camelcase,prefer-const */
 import { Model, Collection } from 'js-abstract-model'
-import API_ADDRESS from '../api/Addresses'
 
 class User extends Model {
   constructor (data) {
     super(data, [
       {
         key: 'baseRoute',
-        default: API_ADDRESS.user.base
+        default: '/user'
       },
       { key: 'id' },
       { key: 'first_name' },
@@ -18,6 +17,13 @@ class User extends Model {
       { key: 'city' },
       { key: 'province' },
       { key: 'ostan_id' },
+      {
+        key: 'shahr',
+        default: {
+          id: null,
+          title: null
+        }
+      },
       { key: 'shahr_id' },
       { key: 'address' },
       { key: 'postal_code' },
@@ -25,14 +31,22 @@ class User extends Model {
       { key: 'school' },
       { key: 'user_exam_status' },
       { key: 'photo' },
+      { key: 'name_slug' },
+      { key: 'kartemeli' },
       { key: 'role' },
       { key: 'token' },
+      { key: 'national_code' },
+      { key: 'has_purchased_anything' },
       { key: 'has_admin_permission' },
       { key: 'has_educational_permission' },
 
       { key: 'mobile_verified_at' },
       { key: 'wallet_balance' },
       { key: 'profile_completion' },
+      {
+        key: 'permissions',
+        default: []
+      },
 
       {
         key: 'gender',
@@ -54,8 +68,16 @@ class User extends Model {
     ])
 
     if (!this.full_name) {
-      this.full_name = this.first_name + ' ' + this.last_name
+      this.full_name = (this.first_name ? this.first_name : '') + ' ' + (this.last_name ? this.last_name : '')
     }
+
+    if (!this.shahr_id) {
+      this.shahr_id = this.shahr?.id || this.city?.id
+    }
+  }
+
+  hasPermission (permission) {
+    return !!this.permissions.includes(permission)
   }
 
   getCompletionInfoKeys () {
@@ -63,9 +85,9 @@ class User extends Model {
       'first_name',
       'last_name',
       'major',
-      'city',
+      'shahr_id',
       // 'school',
-      'mobile_verified_at',
+      // 'mobile_verified_at',
       'grade'
     ]
   }

@@ -109,13 +109,13 @@
             </q-btn>
           </template>
           <template v-else-if="inputData.col.name === 'photo'">
-            <q-img :src="inputData.col.thumbnail"
+            <q-img :src="inputData.col.photo"
                    :ratio="16/9"
                    width="142px"
                    height="78px" />
           </template>
           <template v-else-if="inputData.col.name === 'title'">
-            <div class="text-body1">{{inputData.col.value.name}}</div>
+            <div class="body1">{{inputData.col.value.name}}</div>
             <div v-html="inputData.col.value.description" />
           </template>
           <template v-else>
@@ -128,7 +128,8 @@
                             v-model:contentId="progressDialogContentId"
                             @toggleDialog="toggleUploadProgressDialog(false)" />
     <upload-dialog v-model:dialog="uploadDialog"
-                   @toggleDialog="toggleUploadDialog(false)" />
+                   @toggleDialog="toggleUploadDialog(false)"
+                   @editContent="toggleUploadProgressDialog($event)" />
 
   </div>
 </template>
@@ -142,7 +143,7 @@ import { shallowRef } from 'vue'
 import ContentEditHeader from 'components/Utils/ContentEditHeader.vue'
 import { APIGateway } from 'src/api/APIGateway'
 import TreeInputComponent from 'components/Utils/TreeInput.vue'
-import Assist from 'assets/js/Assist'
+import jalali from 'moment-jalaali'
 import moment from 'moment/moment'
 const ActionBtn = shallowRef(ActionBtnComponent)
 const TreeInput = shallowRef(TreeInputComponent)
@@ -186,7 +187,7 @@ export default {
       tab: 'createdAtSince',
       expanded: true,
       selected: [],
-      api: APIGateway.content.FullAPIAdresses.admin,
+      api: APIGateway.content.APIAdresses.admin,
       tableKeys: {
         data: 'data',
         total: 'meta.total',
@@ -201,7 +202,7 @@ export default {
             required: true,
             label: 'فیلم',
             align: 'left',
-            field: row => row.thumbnail
+            field: row => row.photo
           },
           {
             name: 'title',
@@ -222,7 +223,7 @@ export default {
             required: true,
             label: 'تاریخ بارگذاری',
             align: 'left',
-            field: row => Assist.miladiToShamsi(row.updated_at)
+            field: row => jalali(row.updated_at)
           },
           {
             name: 'actions',
@@ -266,11 +267,23 @@ export default {
       ]
     }
   },
+  beforeMount () {
+    this.initEntityValues()
+  },
   mounted () {
     this.initFilterBoxDisplay()
-    this.setSelectedMode('createdAtSince')
   },
   methods: {
+    getRemoveMessage (row) {
+      const firstName = row.first_name
+      const lastName = row.last_name
+      return 'آیا از حذف ' + firstName + ' ' + lastName + ' اطمینان دارید؟'
+    },
+    initEntityValues () {
+      const formBuilderInputIndex = this.inputs.findIndex(input => input.name === 'formBuilderCol')
+      const inputIndex = this.inputs[formBuilderInputIndex].value.findIndex(input => input.name === 'createdAtSince')
+      this.inputs[formBuilderInputIndex].value[inputIndex].value = this.getCurrentDate()
+    },
     onTabChanged(val) {
       this.setSelectedMode(val)
     },
@@ -293,9 +306,11 @@ export default {
       this.$refs.entityIndex.setInputAttributeByName('createdAtSince', 'readonly', false)
       this.$refs.entityIndex.setInputAttributeByName('enable', 'readonly', false)
     },
+    getCurrentDate() {
+      return moment(new Date()).format('YYYY-MM-DD')
+    },
     setCreatedAtSinceMode () {
-      const currentDate = moment(new Date()).format('YYYY-MM-DD')
-      this.$refs.entityIndex.setInputByName('createdAtSince', currentDate)
+      this.$refs.entityIndex.setInputByName('createdAtSince', this.getCurrentDate())
       this.$refs.entityIndex.setInputAttributeByName('createdAtSince', 'readonly', true)
       // this.$refs.entityIndex.setInputByName('createdAtTill', currentDate)
     },
@@ -315,6 +330,8 @@ export default {
     toggleUploadProgressDialog(value) {
       if (value) {
         this.progressDialogContentId = value
+      } else {
+        this.progressDialogContentId = null
       }
       this.progressDialog = !this.progressDialog
     },

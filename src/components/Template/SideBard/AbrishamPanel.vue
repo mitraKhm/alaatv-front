@@ -8,12 +8,12 @@
       <q-list class="menu-items-list">
         <q-item v-for="(item, index) in menuItems"
                 :key="index"
-                :to="{name:item.routeName }"
+                :to="{name:item.routeName(isPro) }"
                 class="menu-item">
-          <div v-if="$route.name === item.routeName"
+          <div v-if="$route.name === item.routeName(isPro)"
                class="menu-indicator" />
-          <i class="icon"
-             :class="['fi-rr-' + item.icon , $route.name===item.routeName ? 'activate' :'']" />
+          <q-icon :name="item.icon"
+                  size="26px" />
         </q-item>
       </q-list>
     </div>
@@ -29,24 +29,24 @@ export default {
     isActive: null,
     menuItems: [
       {
-        icon: 'play-alt',
-        routeName: 'UserPanel.Asset.Abrisham.Progress'
+        icon: 'isax:play',
+        routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.Progress'
+      },
+      // {
+      //   icon: 'isax:calendar',
+      //   routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.Schedule'
+      // },
+      {
+        icon: 'isax:headphone',
+        routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.Consulting'
       },
       {
-        icon: 'calendar',
-        routeName: 'UserPanel.Asset.Abrisham.Schedule'
+        icon: 'isax:firstline',
+        routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.News'
       },
       {
-        icon: 'headphones',
-        routeName: 'UserPanel.Asset.Abrisham.Consulting'
-      },
-      {
-        icon: 'envelope',
-        routeName: 'UserPanel.Asset.Abrisham.News'
-      },
-      {
-        icon: 'world',
-        routeName: 'UserPanel.Asset.Abrisham.Map'
+        icon: 'isax:map',
+        routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.Map'
       }
       // {
       //   icon: 'list-check',
@@ -60,11 +60,10 @@ export default {
 
     ]
   }),
-  created() {
-
-  },
-  methods: {
-
+  computed: {
+    isPro () {
+      return this.$route.name.includes('UserPanel.Asset.AbrishamPro.')
+    }
   }
 }
 </script>
@@ -75,6 +74,8 @@ export default {
   display: flex !important;
   flex-direction: column;
   border-right: 1px solid #e0e0e0;
+  background: white;
+  height: 100%;
   .menu-logo {
     text-align: center;
     margin: 30px auto 130px;
@@ -117,6 +118,7 @@ export default {
         text-align: center;
         display: flex;
         justify-content: center;
+        align-items: center;
         .activate{
           color: #ff8f00 !important;
         }

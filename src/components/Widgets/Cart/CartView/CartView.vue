@@ -1,193 +1,242 @@
 <template>
-  <div v-if="cart.count > 0"
-       class="cart-count">
-    سبدخرید شما ({{cart.count}})
-  </div>
-  <div class="cart-view-widget">
-    <div v-for="(order, i) in orderList"
-         :key="order.orderProductId"
-         class="cart-items">
-      <q-card class="cart-card"
-              :class="order.order_product?.list.length > 0 ? '': 'cart'">
-        <q-card-section class="card-section">
-          <div class="order-image-section">
-            <div class="order-image-container">
-              <q-img :src="order.grand.product.photo"
-                     class="order-image" />
-            </div>
-          </div>
-
-          <div class="product-text-info">
-            <div class="order-item-header">
-              <div class="title ellipsis">
-                {{ order.grand.title }}
-              </div>
-
-              <q-btn v-if="order.orderProductId"
-                     unelevated
-                     class="trash-button"
-                     icon="isax:trash"
-                     @click="changeDialogState(true, order.orderProductId)" />
-            </div>
-
-            <div v-if="order.grand.product && order.grand.product.attributes && order.grand.product.attributes.info"
-                 class="product-information">
-              <div v-if="order.grand.product.attributes.info.teacher"
-                   class="product-info">
-                <q-icon name="isax:teacher"
-                        class="info-icon" />
-                <div class="info-value">
-                  {{ order.grand.product.attributes.info.teacher.join('، ') }}
-                </div>
-              </div>
-
-              <div v-if="order.grand.product.attributes.info.major"
-                   class="product-info">
-                <q-icon name="isax:book-1"
-                        class="info-icon" />
-                <div class="info-value">
-                  رشته تحصیلی: {{ order.grand.product.attributes.info.major.join(' - ') }}
-                </div>
-              </div>
-
-              <div v-if="order.grand.product.attributes.info.production_year"
-                   class="product-info">
-                <q-icon name="isax:menu-board4"
-                        class="info-icon" />
-                <div class="info-value">
-                  {{ order.grand.product.attributes.info.production_year.join('، ') }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </q-card-section>
-
-        <q-card-section class="card-actions">
-          <div class="product-details row"
-               :class="expandedObject[i] ?'on-open-expansion': ''">
-            <div v-if="order.grand.price"
-                 class="price-container col-md-6 col-sm-3">
-              <div class="discount-part">
-                <div class="discount-percent">
-                  {{ order.grand.price.discountInPercent() }}%
-                </div>
-
-                <div class="base-price">
-                  {{ order.grand.price.toman('base', null) }}
-                </div>
-              </div>
-
-              <div class="final-part">
-                <div class="final-price">{{ order.grand.price.toman('final', null) }}</div>
-                <div class="toman">تومان</div>
+  <div class="cart-view-container">
+    <template v-if="cart.loading">
+      <div class="cart-count">
+        <q-skeleton type="text"
+                    width="100px" />
+      </div>
+      <div class="cart-items">
+        <q-card class="cart-card">
+          <q-card-section class="card-section">
+            <div class="order-image-section">
+              <div class="order-image-container">
+                <q-skeleton height="100%"
+                            square />
               </div>
             </div>
 
-            <div class="action-buttons col-md-12 col-sm-3"
-                 :class="expandedObject[i] ? '' : 'open-expansion'">
-              <span v-if="!expandedObject[i] || !order.order_product">
-                <a v-if="order.grand && order.grand.url && order.grand.url.web"
-                   class="link"
-                   :href="order.grand?.url?.web">
-                  {{ descLinkLabel }}
-                </a>
-              </span>
+            <div class="product-text-info">
+              <div class="order-item-header">
+                <div class="title ellipsis q-px-lg q-pt-lg">
+                  <q-skeleton type="text" />
+                  <q-skeleton type="text"
+                              width="85%" />
+                </div>
+                <q-skeleton type="QBtn"
+                            width="25px"
+                            height="25px" />
+              </div>
+            </div>
+          </q-card-section>
 
-              <router-link :to="{name: 'Public.Product.Show', params:{id: order.grand.product.id?order.grand.product.id:-1}}"
-                           class="go-product text-primary text-center">
-                رفتن
-                به صفحه محصول
-              </router-link>
-              <q-expansion-item v-if="order.order_product?.list.length > 0"
-                                v-model="expandedObject[i]"
-                                label="جزئیات محصول"
-                                class="details-expansion"
-                                :class="expandedObject[i] ?'open-expansion-style': 'close-expansion-style'"
-                                :header-class=" expandedObject[i] ? 'hide-expansion-header' : ''">
-                <q-card class="details-expansion-card">
-                  <q-card-section class="details-expansion-card-section">
-                    <div v-for="(orderProduct, index) in order.order_product.list"
-                         :key="orderProduct.id"
-                         class="pamphlet">
-                      <div class="title ellipsis">
-                        {{ orderProduct.product.title }}
-                      </div>
+          <q-card-section class="card-actions">
+            <div class="product-details row expanded">
+              <div class="price-container col-md-6 col-sm-3">
+                <q-skeleton type="text"
+                            width="150px" />
+              </div>
+              <div class="action-buttons col-md-12 col-sm-3">
+                <q-skeleton type="QBtn"
+                            height="20px" />
+              </div>
+            </div>
 
-                      <div class="right-part">
-                        <span class="price"
-                              :class="index !== 0 ? 'without-trash': ''">
-                          {{ orderProduct.price.toman('final') }}
-                        </span>
-                        <q-btn unelevated
-                               class="trash-button"
-                               icon="isax:trash"
-                               @click="changeDialogState(true, orderProduct.id)" />
-                      </div>
+          </q-card-section>
+
+        </q-card>
+      </div>
+    </template>
+    <template v-else-if="cart.count > 0">
+      <div class="cart-count">
+        {{localOptions.title}} ({{cart.count}})
+      </div>
+      <div class="cart-view-widget">
+        <div v-for="(order, i) in cartItemsList"
+             :key="i"
+             class="cart-items">
+          <q-card class="cart-card cart">
+            <q-card-section class="card-section">
+              <div class="order-image-section">
+                <div class="order-image-container">
+                  <router-link :to="{name: 'Public.Product.Show', params:{id: getProductKey(order, 'id')}}">
+                    <lazy-img :src="getProductKey(order, 'photo')"
+                              :alt="getProductKey(order, 'title')"
+                              width="1"
+                              height="1"
+                              class="order-image" />
+                  </router-link>
+                </div>
+              </div>
+              <div class="product-text-info">
+                <div class="order-item-header">
+                  <div class="title ellipsis"
+                       :class="{'floating': localOptions.floating}">
+                    {{ getProductKey(order, 'title') }}
+                    <q-tooltip>
+                      {{ getProductKey(order, 'title') }}
+                    </q-tooltip>
+                  </div>
+                  <q-btn v-if="!order.hasGrand()"
+                         unelevated
+                         class="trash-button"
+                         icon="isax:trash"
+                         @click="changeDialogState(true, order)" />
+                </div>
+
+                <div v-if="getProductKey(order, 'attributes')?.info"
+                     class="product-information">
+                  <div v-if="getProductKey(order, 'attributes').info.teacher"
+                       class="product-info">
+                    <q-icon name="isax:teacher"
+                            class="info-icon" />
+                    <div class="info-value">
+                      {{ getProductKey(order, 'attributes').info.teacher.join('، ') }}
                     </div>
-                  </q-card-section>
+                  </div>
+                  <div v-if="getProductKey(order, 'attributes').info.major"
+                       class="product-info">
+                    <q-icon name="isax:book-1"
+                            class="info-icon" />
+                    <div class="info-value">
+                      رشته تحصیلی: {{ getProductKey(order, 'attributes').info.major.join(' - ') }}
+                    </div>
+                  </div>
+                  <div v-if="getProductKey(order, 'attributes').info.production_year"
+                       class="product-info">
+                    <q-icon name="isax:menu-board4"
+                            class="info-icon" />
+                    <div class="info-value">
+                      {{ getProductKey(order, 'attributes').info.production_year.join('، ') }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </q-card-section>
+            <q-card-section class="card-actions">
+              <div v-for="item in order.order_product.list"
+                   :key="item.id"
+                   class="product-details"
+                   :class="expandedObject[i] ?'expanded': ''">
+                <div v-if="item.price.final !== null"
+                     class="price-container col-md-6 col-sm-3">
+                  <div class="discount-part">
+                    <div v-if="hasDiscount(item)"
+                         class="discount-percent">
+                      {{ item.price.discountInPercent() }}%
+                    </div>
 
-                  <q-card-section class="details-expansion-actions">
-                    <a v-if="order.grand && order.grand.url && order.grand.url.web"
-                       class="link expansion-link"
-                       :href="order.grand?.url?.web">
-                      {{ descLinkLabel }}
-                    </a>
-                    <q-btn-dropdown class="details-button"
+                    <div v-if="hasDiscount(item)"
+                         class="base-price">
+                      {{ item.price.toman('base', null) }}
+                    </div>
+                  </div>
+                  <div class="final-part">
+                    <div class="final-price">{{ item.price.toman('final', null) }}</div>
+                    <div class="toman">تومان</div>
+                  </div>
+                </div>
+                <div v-if="false"
+                     class="action-buttons col-md-6 col-sm-3"
+                     :class="expandedObject[i] ? '' : 'open-expansion'">
+                  <router-link :to="{name: 'Public.Product.Show', params:{id: item.product_id}}"
+                               class="go-product subtitle2 text-center">
+                    رفتن
+                    به صفحه دوره
+                  </router-link>
+                  <q-expansion-item v-if="order.order_product?.list.length > 0"
+                                    v-model="expandedObject[i]"
                                     label="جزئیات محصول"
-                                    dropdown-icon="isax:arrow-up-2"
-                                    flat
-                                    @click="expandedObject[i] = !expandedObject[i]" />
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-            </div>
-          </div>
+                                    class="details-expansion"
+                                    :class="expandedObject[i] ?'open-expansion-style': 'close-expansion-style'"
+                                    :header-class=" expandedObject[i] ? 'hide-expansion-header' : ''">
+                    <q-card class="details-expansion-card">
+                      <q-card-section class="details-expansion-card-section">
+                        <div v-for="(orderProduct, index) in order.order_product.list"
+                             :key="orderProduct.id"
+                             class="pamphlet">
+                          <div class="title ellipsis">
+                            {{ orderProduct.product.title }}
+                          </div>
+                          <div class="right-part">
+                            <span class="price"
+                                  :class="index !== 0 ? 'without-trash': ''">
+                              {{ orderProduct.price.toman('final') }}
+                            </span>
+                            <q-btn unelevated
+                                   class="trash-button"
+                                   icon="isax:trash"
+                                   @click="changeDialogState(true, orderProduct)" />
+                          </div>
+                        </div>
+                      </q-card-section>
+                      <q-card-section class="details-expansion-actions">
+                        <router-link v-if="order.hasGrand()"
+                                     :to="{name: 'Public.Product.Show', params:{id: order.grand.id}}"
+                                     class="link expansion-link">
+                          {{ descLinkLabel }}
+                        </router-link>
+                        <q-btn-dropdown class="details-button"
+                                        label="جزئیات محصول"
+                                        dropdown-icon="isax:arrow-up-2"
+                                        flat
+                                        @click="expandedObject[i] = !expandedObject[i]" />
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+    </template>
+    <q-dialog v-model="dialogState"
+              class="delete-dialog">
+      <q-card class="delete-dialog-card">
+        <q-card-section class="close-button-section">
+          <q-icon class="close-dialog-button"
+                  name="isax:close-circle"
+                  @click="changeDialogState(false)" />
         </q-card-section>
 
+        <q-card-section class="delete-dialog-card-section">
+          <div class="info-icon">
+            <q-icon name="isax:info-circle" />
+          </div>
+
+          <p class="are-u-sure-statement">آیا از حذف محصول مطمئن هستید؟</p>
+        </q-card-section>
+
+        <q-card-actions class="delete-dialog-card-actions">
+          <q-btn class="dont-delete-button"
+                 unelevated
+                 :loading="cart.loading"
+                 @click="changeDialogState(false)">
+            انصراف
+          </q-btn>
+
+          <q-btn class="surely-delete-button"
+                 unelevated
+                 :loading="cart.loading"
+                 @click="removeItem">
+            بله، مطمئن هستم
+          </q-btn>
+        </q-card-actions>
       </q-card>
-    </div>
+    </q-dialog>
   </div>
-
-  <q-dialog v-model="dialogState"
-            class="delete-dialog">
-    <q-card class="delete-dialog-card">
-      <q-card-section class="close-button-section">
-        <q-icon class="close-dialog-button"
-                name="isax:close-circle"
-                @click="changeDialogState(false)" />
-      </q-card-section>
-
-      <q-card-section class="delete-dialog-card-section">
-        <div class="info-icon">
-          <q-icon name="isax:info-circle" />
-        </div>
-
-        <p class="are-u-sure-statement">آیا از حذف محصول مطمئن هستید؟</p>
-      </q-card-section>
-
-      <q-card-actions class="delete-dialog-card-actions">
-        <div class="dont-delete-button"
-             @click="changeDialogState(false)">
-          انصراف
-        </div>
-
-        <div class="surely-delete-button"
-             @click="removeItem(clickedItemIdToRemove)">
-          بله، مطمئن هستم
-        </div>
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
 </template>
 
 <script>
 import { Cart } from 'src/models/Cart.js'
-import { OrderProduct } from 'src/models/OrderProduct.js'
-import Widgets from 'src/components/PageBuilder/Widgets.js'
+import LazyImg from 'src/components/lazyImg.vue'
+import { mixinWidget } from 'src/mixin/Mixins.js'
+import { CartItem } from 'src/models/CartItem.js'
 
 export default {
   name: 'CartView',
-  mixins: [Widgets],
+  components: { LazyImg },
+  mixins: [mixinWidget],
   props: {
     options: {
       type: Object,
@@ -197,18 +246,39 @@ export default {
     }
   },
   emits: ['cartReview'],
-  data() {
+  data () {
     return {
-      cart: new Cart(),
+      // cart: new Cart(),
+      mounted: false,
       dialogState: false,
       test: null,
       expandedObject: {},
-      clickedItemIdToRemove: null
+      clickedOrderProductToRemove: null,
+      defaultOptions: {
+        className: '',
+        height: 'auto',
+        boxed: false,
+        boxedWidth: 1200,
+        style: {},
+        title: 'سبد خرید شما',
+        floating: false
+      }
     }
   },
-
   computed: {
-    orderList () {
+    cart: {
+      get () {
+        if (this.mounted) {
+          return this.$store.getters['Cart/cart']
+        }
+
+        return new Cart()
+      },
+      set (newValue) {
+        this.$store.commit('Cart/updateCart', newValue)
+      }
+    },
+    cartItemsList () {
       return this.getOrderedList(this.cart.items.list)
     },
 
@@ -224,32 +294,41 @@ export default {
       }
     }
   },
-  created() {
-    this.loading = true
+  mounted () {
+    this.mounted = true
     this.cartReview()
+    this.$bus.on('busEvent-refreshCart', this.cartReview)
   },
-
   methods: {
+    getProductKey (order, key) {
+      if (order.hasGrand()) {
+        return order.grand[key]
+      }
+
+      return order.order_product.list[0].product[key]
+    },
+    hasDiscount(order) {
+      return order.price.discountInPercent() > 0
+    },
     cartReview() {
-      this.$store.dispatch('loading/overlayLoading', true)
+      this.cart.loading = true
       this.$store.dispatch('Cart/reviewCart')
         .then((response) => {
-          const invoice = response
+          // const invoice = response
 
           const cart = new Cart(response)
 
-          if (invoice.count > 0) {
-            invoice.items.list[0].order_product.list.forEach((order) => {
-              cart.items.list.push(order)
-            })
-          }
+          // if (invoice.count > 0) {
+          //   invoice.items.list[0].order_product.list.forEach((order) => {
+          //     cart.items.list.push(order)
+          //   })
+          // }
           this.cart = cart
-          this.$store.dispatch('loading/overlayLoading', false)
+          this.cart.loading = false
         }).catch(() => {
-          this.$store.dispatch('loading/overlayLoading', false)
+          this.cart.loading = false
         })
     },
-
     getOrderedList (cartItems) {
       if (!cartItems || cartItems.list?.length === 0) {
         return
@@ -257,37 +336,45 @@ export default {
       const customItems = []
 
       cartItems.forEach((item, i) => {
-        if (item.grand !== undefined && item.grand.id) {
+        if (item.hasGrand()) {
           customItems.push(item)
-        } else if (item.grand !== undefined && !item.grand.id && item.order_product.list.length > 0) {
+        } else {
           item.order_product.list.forEach(order => {
-            customItems.push({ grand: new OrderProduct(order), orderProductId: order.id })
+            // customItems.push({ grand: new OrderProduct(order), orderProductId: order.id })
+            customItems.push(new CartItem({
+              order_product: [order]
+            }))
           })
         }
         this.expandedObject[i] = true
       })
+
       return customItems
     },
-
-    removeItem(orderProductId) {
-      this.$store.dispatch('loading/overlayLoading', true)
-      this.$store.dispatch('Cart/removeItemFromCart', orderProductId)
+    removeItem() {
+      this.changeDialogState(false)
+      this.$store.dispatch('Cart/removeItemFromCart', this.clickedOrderProductToRemove)
         .then(() => {
-          this.$store.dispatch('loading/overlayLoading', false)
           this.cartReview()
-          this.changeDialogState(false)
-          this.$bus.emit('removeProduct')
-        }).catch(() => {
-          this.changeDialogState(false)
-          this.$store.dispatch('loading/overlayLoading', false)
+          this.$bus.emit('busEvent-refreshCart')
+        })
+        .catch(() => {
+          this.cartReview()
+          this.$bus.emit('busEvent-refreshCart')
         })
     },
-
-    changeDialogState (state, itemId) {
-      if (itemId) {
-        this.clickedItemIdToRemove = itemId
-      }
+    changeDialogState (state, cartItem) {
       this.dialogState = state
+      if (!state) {
+        return
+      }
+      if (cartItem.hasGrand && cartItem.hasGrand()) {
+        this.clickedOrderProductToRemove = cartItem.grand
+      } else if (cartItem.hasGrand && !cartItem.hasGrand()) {
+        this.clickedOrderProductToRemove = cartItem.order_product.list[0].product
+      } else if (!cartItem.hasGrand) {
+        this.clickedOrderProductToRemove = cartItem.product
+      }
     }
   }
 }
@@ -300,7 +387,7 @@ export default {
   font-size: 14px;
   line-height: 22px;
   color: #6D708B;
-  margin: 24px 0 22px 0;
+  margin: 24px 0 24px 0;
 
   @media screen and (max-width: 1439px) {
     letter-spacing: -0.03em;
@@ -347,7 +434,13 @@ export default {
         padding: 0;
         display: flex;
 
+        $orderImageSectionWidth-size-1: 144px;
+        $orderImageSectionWidth-size-2: 110px;
+        $orderImageSectionWidth-size-3: 72px;
+
         .order-image-section {
+          height: $orderImageSectionWidth-size-1;
+          width: $orderImageSectionWidth-size-1;
           padding: 0;
           margin-right: 20px;
 
@@ -355,54 +448,50 @@ export default {
             margin-right: 16px;
           }
 
+          @media screen and (max-width: 1023px) {
+            width: $orderImageSectionWidth-size-2;
+            height: $orderImageSectionWidth-size-2;
+          }
+
           @media screen and (max-width: 599px) {
+            width: $orderImageSectionWidth-size-3;
+            height: $orderImageSectionWidth-size-3;
             margin-right: 8px;
           }
 
           .order-image-container {
-            height: 144px;
-            width: 144px;
+            width: 100%;
             border-radius: 10px;
             background: #F6F9FF;
 
-            @media screen and (max-width: 1023px) {
-              width: 110px;
-              height: 110px;
-            }
-
             @media screen and (max-width: 599px) {
-              width: 72px;
-              height: 72px;
               margin-top: 34px;
             }
 
-            .order-image {
-              height: 144px;
-              width: 144px;
+            :deep(.order-image) {
+              width: 100%;
               border-radius: 10px;
-
-              @media screen and (max-width: 1023px) {
-                width: 110px;
-                height: 110px;
-              }
-
-              @media screen and (max-width: 599px) {
-                width: 72px;
-                height: 72px;
-              }
             }
           }
         }
 
         .product-text-info {
           flex-direction: column;
-          width: 100%;
+          width: calc( 100% - #{$orderImageSectionWidth-size-1} );
+          @media screen and (max-width: 1023px) {
+            width: calc( 100% - #{$orderImageSectionWidth-size-2} );
+          }
+
+          @media screen and (max-width: 599px) {
+            width: calc( 100% - #{$orderImageSectionWidth-size-3} );
+          }
           .order-item-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             height: 24px;
             margin-bottom: 10px;
+            max-width: 100%;
 
             @media screen and (max-width: 1023px) {
               margin-bottom: 12px;
@@ -422,6 +511,11 @@ export default {
               letter-spacing: -0.03em;
               color: #434765;
               width: 100%;
+
+              &.floating {
+                width: 200px;
+                max-width: 100%;
+              }
 
               @media screen and (max-width: 599px) {
                 position: absolute;
@@ -518,11 +612,6 @@ export default {
             margin-top: 0;
           }
 
-          &.on-open-expansion {
-            flex-direction: column;
-            margin-top: 0;
-          }
-
           .price-container {
             display: flex;
             align-items: center;
@@ -603,13 +692,13 @@ export default {
             display: flex;
             align-items: center;
             width: 100%;
-            justify-content: left;
+            justify-content: flex-end;
 
             .link {
               font-weight: 600;
               font-size: 12px;
               line-height: 19px;
-              color: #9690E4;
+              color: $primary;
               cursor: pointer;
               text-decoration: none;
               margin-right: 24px;
@@ -681,7 +770,7 @@ export default {
                   }
 
                   .pamphlet {
-                    padding: 10px 16px;
+                    padding: 0 16px;
                     background: #FFFFFF;
                     border: 1.5px solid #E4E8EF;
                     border-radius: 8px;
@@ -690,6 +779,8 @@ export default {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    flex-flow: row;
+                    flex-wrap: wrap;
 
                     @media screen and (max-width: 599px) {
                       flex-direction: column;
@@ -703,15 +794,16 @@ export default {
                       font-size: 12px;
                       line-height: 19px;
                       letter-spacing: -0.03em;
-                      color: #6D708B;padding-right: 30px;
-                      width: 100%;
+                      color: #6D708B;
+                      padding-right: 10px;
+                      width: calc( 100% - 100px );
                     }
 
                     .right-part {
                       display: flex;
                       align-items: center;
-                      width: 100%;
-                      justify-content: flex-end;
+                      width: 100px;
+                      justify-content: space-between;
 
                       .price {
                         font-style: normal;
@@ -719,19 +811,6 @@ export default {
                         font-size: 12px;
                         line-height: 19px;
                         color: #6D708B;
-                        margin-right: 16px;
-
-                        &.without-trash {
-                          margin-right: 36px;
-
-                          @media screen and (max-width: 599px) {
-                            margin-right: 28px;
-                          }
-                        }
-
-                        @media screen and (max-width: 599px) {
-                          margin-right: 10px;
-                        }
                       }
 
                       .hidden-trash-button {
@@ -794,19 +873,29 @@ export default {
                 border-radius: 100%;
               }
             }
-
           }
+
+          &.expanded {
+            .action-buttons {
+              .go-product {
+                color: $grey-9 !important;
+                display: none;
+              }
+            }
+            flex-direction: column;
+            margin-top: 0;
+          }
+
         }
       }
-
     }
   }
-
 }
 
 .delete-dialog {
   .delete-dialog-card {
     width: 348px;
+    max-width: 100%;
     background: #FFFFFF;
     border-radius: 10px;
 
@@ -845,6 +934,11 @@ export default {
       padding: 24px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
+
+      @media screen and (max-width: 360px) {
+        justify-content: center;
+      }
 
       .surely-delete-button {
         display: flex;
@@ -858,7 +952,7 @@ export default {
         color: #FFFFFF;
         width: 144px;
         height: 40px;
-        background: #8075DC;
+        background: $primary;
         box-shadow: 0 4px 12px rgba(62, 61, 67, 0.15);
         border-radius: 8px;
         cursor: pointer;
@@ -886,6 +980,10 @@ export default {
 
         @media screen and (max-width: 599px) {
           width: 122px;
+        }
+
+        @media screen and (max-width: 360px) {
+          margin: 16px 0;
         }
       }
     }

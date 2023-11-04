@@ -1,4 +1,4 @@
-function getEntityCrudRouteObject (path, baseRouteName, componentPath, breadcrumbs) {
+function getEntityCrudRouteObject(path, baseRouteName, componentPath, breadcrumbs) {
   const AllNeededRoutes = [
     { mode: 'Index', path: '' },
     { mode: 'Create', path: 'create' },
@@ -46,12 +46,12 @@ const entityCrudRouteConfigs = [
     componentPath: 'pages/Admin/User/Roles',
     breadcrumbs: { title: 'مدیریت نقش ها' }
   },
-  {
-    path: 'product',
-    baseRouteName: 'Admin.Product',
-    componentPath: 'pages/Admin/User/Product',
-    breadcrumbs: { title: 'محصولات' }
-  },
+  // {
+  //   path: 'product',
+  //   baseRouteName: 'Admin.Product',
+  //   componentPath: 'pages/Admin/User/Product',
+  //   breadcrumbs: { title: 'محصولات' }
+  // },
   {
     path: 'content',
     baseRouteName: 'Admin.Content',
@@ -63,12 +63,6 @@ const entityCrudRouteConfigs = [
     baseRouteName: 'Admin.SourceManagement',
     componentPath: 'pages/Admin/Content/SourceManagement',
     breadcrumbs: { title: 'مدیریت منابع' }
-  },
-  {
-    path: 'set',
-    baseRouteName: 'Admin.Sets',
-    componentPath: 'pages/Admin/Content/Sets',
-    breadcrumbs: { title: 'دسته محتوا' }
   },
   {
     path: 'section',

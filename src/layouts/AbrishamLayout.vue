@@ -24,12 +24,17 @@
           <q-item v-if="activePage && item.icon !== activePage.icon"
                   v-ripple
                   clickable
-                  :to="{name:item.routeName}"
+                  :to="{name:item.routeName(isPro)}"
+                  class="menu-item"
                   @click='setActivePage(item)'>
             <q-item-section class="text-center">
-              <i class="menu-item-icon flex"
-                 :class="['fi-rr-' + item.icon]" />
-              {{item.title}}
+              <q-icon :name="item.icon"
+                      size="20px" />
+              <!--              <i class="menu-item-icon flex"-->
+              <!--                 :class="['fi-rr-' + item.icon]" />-->
+              <span class="title">
+                {{item.title}}
+              </span>
             </q-item-section>
           </q-item>
 
@@ -52,46 +57,54 @@ export default {
     keepAliveComponents: KeepAliveComponents,
     expandedNavigation: null,
     activePage: {
-      icon: 'calendar',
-      routeName: 'UserPanel.Asset.Abrisham.Schedule',
-      title: 'برنامه مطالعاتی'
+      icon: 'isax:play',
+      routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.Progress',
+      title: 'فیلم ها'
     },
     menuItem: [
       {
-        icon: 'play-alt',
-        routeName: 'UserPanel.Asset.Abrisham.Progress',
+        icon: 'isax:play',
+        routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.Progress',
         title: 'فیلم ها'
       },
+      // {
+      //   icon: 'isax:calendar',
+      //   routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.Schedule',
+      //   title: 'برنامه مطالعاتی'
+      // },
       {
-        icon: 'calendar',
-        routeName: 'UserPanel.Asset.Abrisham.Schedule',
-        title: 'برنامه مطالعاتی'
-      },
-      {
-        icon: 'headphones',
-        routeName: 'UserPanel.Asset.Abrisham.Consulting',
+        icon: 'isax:headphone',
+        routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.Consulting',
         title: 'مشاوره'
       },
       {
-        icon: 'envelope',
-        routeName: 'UserPanel.Asset.Abrisham.News',
+        icon: 'isax:firstline',
+        routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.News',
         title: 'اخبار و اطلاعیه'
       }, {
-        icon: 'world',
-        routeName: 'UserPanel.Asset.Abrisham.Map',
+        icon: 'isax:map',
+        routeName: (isPro) => 'UserPanel.Asset.Abrisham' + (isPro ? 'Pro' : '') + '.Map',
         title: 'نقشه'
       }
     ]
   }),
+  computed: {
+    isPro () {
+      return this.$route.name.includes('UserPanel.Asset.AbrishamPro.')
+    }
+  },
   created() {
     this.activePage = this.getPageFromRouteName()
   },
   mounted () {
     this.activePage = this.getPageFromRouteName()
+    if (window.innerWidth < 1024) {
+      this.$store.commit('AppLayout/updateLayoutLeftDrawerVisible', false)
+    }
   },
   methods: {
     getPageFromRouteName () {
-      const page = this.menuItem.find(item => item.routeName === this.$route.name)
+      const page = this.menuItem.find(item => item.routeName(this.isPro) === this.$route.name)
       if (page) {
         return page
       }
@@ -111,7 +124,7 @@ export default {
   background-color: #fff;
 }
 .q-menu .q-item--active{
-color: var(--abrishamMain);
+color: #3e5480;
 }
 </style>
 <style scoped lang="scss">
@@ -126,6 +139,16 @@ color: var(--abrishamMain);
 }
 .abrisham-layout{
   background: white;
+  .menu-item {
+    :deep(.q-item__section) {
+      align-items: center;
+      display: grid;
+      grid-template-columns: 20px 1fr;
+    }
+    .title {
+      justify-self: center;
+    }
+  }
   @media screen and(max-width: 1023px) {
     padding: 0 21px;
   }
@@ -144,15 +167,15 @@ color: var(--abrishamMain);
     font-style: normal;
     line-height: normal;
     letter-spacing: normal;
-    color: var(--abrishamMain);
+    color: #3e5480;
     &:deep(.q-icon){
-      color: var(--alaa-Primary);
+      color: #FFCA28;
       font-weight: 500;
     }
     &:deep(.expanded-icon-color){
       font-size: 50px;
       i {
-        color: var(--abrishamMain) !important;
+        color: #3e5480 !important;
         font-weight: 500;
       }
     }
@@ -163,7 +186,7 @@ color: var(--abrishamMain);
       padding: 0;
     }
     .header-icon{
-      color: var(--alaa-Primary);
+      color: #FFCA28;
       font-size: 22px;
     }
     .menu-item-icon{
@@ -180,18 +203,6 @@ color: var(--abrishamMain);
   }
   &:deep(.q-item__label){
     text-align: center;
-  }
-  &:deep(.q-field__control::after){
-    height: 0;
-  }
-  &:deep(.q-field__control::before){
-    background: transparent;
-  }
-  &:deep(.q-field__control){
-    background: #eff3ff;
-  }
-  &:deep(.q-field--filled .q-field__control::before){
-    border-bottom: none;
   }
 }
 

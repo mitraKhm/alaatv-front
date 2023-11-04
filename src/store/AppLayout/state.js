@@ -10,6 +10,7 @@ const state = {
   layoutHeaderType: '',
   layoutLeftSideBarType: '',
   layoutRightSideBarType: '',
+  layoutFooterType: '',
   // layoutRightSideBarType: '',
   windowSize: {
     x: 0,
@@ -29,7 +30,8 @@ const state = {
     visible: true,
     loading: false,
     path: []
-  }
+  },
+  showHamburgerBtn: true
 }
 
 export default state

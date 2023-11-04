@@ -1,7 +1,7 @@
 import { boot } from 'quasar/wrappers'
 import merge from 'deepmerge'
 
-const key = process.env.VUEX_PERSISTED_STATE_KEY
+const key = process.env.VUEX_PERSISTED_STATE_KEY ? process.env.VUEX_PERSISTED_STATE_KEY : 'vuex'
 
 export default boot(({ store, ssrContext }) => {
   if (ssrContext) {
@@ -20,4 +20,12 @@ export default boot(({ store, ssrContext }) => {
       clone: false
     })
   )
+
+  const accessToken = store.getters['Auth/accessToken']
+  if (accessToken) {
+    store.commit('Auth/updateAxiosAuthorization', accessToken)
+  } else {
+    // console.error('VuexPersistedState boot->Auth/logOut')
+    store.dispatch('Auth/logOut')
+  }
 })

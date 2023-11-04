@@ -5,17 +5,19 @@
         <!--        -----------------------------------------------------Logo Section--------------------------------------------   -->
         <div class="logo-section">
           <div class="drawer-btn hamburger">
-            <q-btn class="toolbar-button"
+            <q-btn v-if="showHamburger"
+                   class="toolbar-button q-btn-sm"
                    icon="isax:menu-1"
                    color="white"
                    text-color="accent"
                    dense
+                   square
                    unelevated
                    @click="toggleLeftDrawer" />
           </div>
           <div class="logo-pic">
             <div class="homepage">
-              <lazy-img src="/img/alaa-logo.svg"
+              <lazy-img src="https://nodes.alaatv.com/upload/alaa-logo.png"
                         :alt="'logo'"
                         width="40"
                         height="40"
@@ -107,7 +109,7 @@ export default {
           children: []
         },
         {
-          title: 'کارت هدیه',
+          title: 'کار آفرینی',
           icon: 'isax:clipboard-text',
           routeName: 'UserPanel.Asset.GiftCard.Dashboard',
           permission: 'all',
@@ -118,6 +120,9 @@ export default {
     }
   },
   computed: {
+    showHamburger () {
+      return this.$store.getters['AppLayout/showHamburgerBtn'] || this.$q.screen.lt.md
+    },
     computedUserId () {
       const user = this.$store.getters['Auth/user']
       if (!user) {
@@ -148,8 +153,14 @@ export default {
   },
   mounted () {
     this.loadAuthData()
+    this.checkAuth()
   },
   methods: {
+    checkAuth() {
+      this.$bus.on('onLoggedIn', () => {
+        this.loadAuthData()
+      })
+    },
     loadAuthData () { // prevent Hydration node mismatch
       this.user = this.$store.getters['Auth/user']
       this.isUserLogin = this.$store.getters['Auth/isUserLogin']
@@ -588,7 +599,7 @@ export default {
             .list-section {
               display: flex;
               flex-direction: row;
-              justify-content: right;
+              justify-content: flex-start;
 
               .q-avatar {
                 height: 22px;

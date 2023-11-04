@@ -1,38 +1,45 @@
 <template>
-  <div class="bg-white shadow-4 q-mb-md q-mx-sm"
-       :style="options.style">
-    <video-player v-if="sources.list.length > 0"
-                  :sources="sources"
-                  :poster="poster" />
-    <div class="q-pa-sm flex flex-center">
-      <q-pagination v-if="options.paginate"
-                    v-model="contentNumber"
-                    :max="set.contents.list.length"
-                    :to-fn="goToContentPage"
-                    :max-pages="6"
-                    direction-links
-                    boundary-links
-                    icon-first="skip_previous"
-                    icon-last="skip_next"
-                    icon-prev="fast_rewind"
-                    icon-next="fast_forward" />
-    </div>
+  <div class="video-player-container">
+    <template v-if="content.loading">
+      <div class="video-player q-mx-md q-mb-lg">
+        <q-responsive :ratio="3/2">
+          <q-skeleton />
+        </q-responsive>
+      </div>
+    </template>
+    <template v-else>
+      <q-card class="video-player custom-card bg-white"
+              :class="options.paginate? 'q-pb-md': ''"
+              :style="options.style">
+        <video-player :content="content"
+                      @time-updated="updateTime" />
+        <div v-if="options.paginate"
+             class="q-py-sm flex flex-center paginate">
+          <q-pagination v-model="contentNumber"
+                        :max="set.contents.list.length"
+                        :to-fn="goToContentPage"
+                        :max-pages="6"
+                        direction-links
+                        icon-prev="fast_rewind"
+                        icon-next="fast_forward" />
+        </div>
+      </q-card>
+    </template>
   </div>
 </template>
 
 <script>
+import { Set } from 'src/models/Set.js'
 import { Content } from 'src/models/Content.js'
-import API_ADDRESS from 'src/api/Addresses.js'
-import { mixinWidget } from 'src/mixin/Mixins.js'
-import VideoPlayer from 'components/VideoPlayer.vue'
+import { APIGateway } from 'src/api/APIGateway.js'
 import { PlayerSourceList } from 'src/models/PlayerSource.js'
-import { Set } from 'src/models/Set'
-import { APIGateway } from 'src/api/APIGateway'
+import VideoPlayer from 'src/components/ContentVideoPlayer.vue'
+import { mixinPrefetchServerData, mixinWidget } from 'src/mixin/Mixins.js'
 
 export default {
   name: 'ContentVideoPlayer',
   components: { VideoPlayer },
-  mixins: [mixinWidget],
+  mixins: [mixinWidget, mixinPrefetchServerData],
   props: {
     options: {
       type: Object,
@@ -41,28 +48,11 @@ export default {
       }
     }
   },
+  emits: ['timeUpdated'],
   data() {
     return {
       content: new Content(),
       set: new Set(),
-      sourceItem: [
-        {
-          src: '',
-          type: 'video/mp4',
-          label: ''
-        },
-        {
-          src: '',
-          type: 'video/mp4',
-          label: '',
-          selected: true
-        },
-        {
-          src: '',
-          type: 'video/mp4',
-          label: ''
-        }
-      ],
       sources: new PlayerSourceList(),
       poster: '',
       contentNumber: 1 // content order may not be continuously
@@ -76,18 +66,46 @@ export default {
       this.loadContent()
     }
   },
-  created() {
-    this.loadContent()
-  },
   methods: {
+    updateTime (data) {
+      this.$emit('timeUpdated', data)
+    },
+    prefetchServerDataPromise () {
+      this.content.loading = true
+      return this.getContentByRequest()
+    },
+    prefetchServerDataPromiseThen (data) {
+      this.content = new Content(data)
+      this.poster = this.content.photo ? this.content.photo : ''
+      this.setSources(this.content.file.video)
+      this.getSetByRequest()
+      this.content.loading = false
+    },
+    prefetchServerDataPromiseCatch () {
+      this.content.loading = false
+    },
+
+    loadContent () {
+      if (this.options.noRequestMode || (this.options.content && this.options.content.id)) {
+        this.content = new Content(this.options.content)
+        this.poster = this.content.photo ? this.content.photo : ''
+        this.setSources(this.content.file.video)
+        this.getSetByRequest()
+        return
+      }
+      this.prefetchServerDataPromise()
+        .then((content) => {
+          this.prefetchServerDataPromiseThen(content)
+        })
+        .catch(() => {
+          this.prefetchServerDataPromiseCatch()
+        })
+    },
     getContentIdByNumberInList(numberInList) {
       return this.set.contents.list[numberInList - 1]?.id
     },
     getContentNumberInListById(contentId) {
       return this.set.contents.list.findIndex(content => parseInt(content.id) === parseInt(contentId)) + 1
-    },
-    loadContent() {
-      this.getContentByRequest()
     },
     getContentId () {
       if (this.options.productId) {
@@ -104,71 +122,21 @@ export default {
     getContentByRequest() {
       const contentId = this.getContentId()
       this.content.loading = true
-      let promise = null
-      promise = APIGateway.content.show(contentId)
-      if (promise) {
-        promise
-          .then((response) => {
-            this.content = new Content(response)
-            this.poster = this.content.photo
-            this.setSources(this.content.file.video)
-            this.getSetByRequest()
-            this.content.loading = false
-          })
-          .catch(() => {
-            this.content.loading = false
-          })
-      }
-    },
-
-    getContent() {
-      this.content.loading = true
-      const url = API_ADDRESS.content.show(this.options.id)
-      let promise = null
-      if (typeof this.options.getData === 'function') {
-        promise = this.options.getData(url)
-      } else {
-        promise = this.$axios.get(url)
-      }
-
-      promise
-        .then(response => {
-          this.content = new Content(response.data.data)
-          this.content.loading = false
-          this.contentNumber = this.getContentNumberInListById(this.content.id)
-          this.poster = this.content.photo
-          this.setSources(this.content.file.video)
-          this.getSet()
-        })
-        .catch(() => {
-          this.content.loading = false
-        })
+      return APIGateway.content.show(contentId)
     },
     getSetByRequest() {
-      this.set.loading = true
-      let promise = null
-      promise = APIGateway.set.show(this.content.set.id)
-      if (promise) {
-        promise
-          .then((response) => {
-            this.set = new Set(response)
-            this.contentNumber = this.getContentNumberInListById(this.content.id)
-            this.set.loading = false
-          })
-          .catch(() => {
-            this.set = new Set()
-            this.set.loading = false
-          })
+      const setId = this.content.set?.id || this.$route.params.setId
+      if (!setId) {
+        return
       }
-    },
-    getSet() {
       this.set.loading = true
-      this.options.getData(API_ADDRESS.set.show(this.content.set.id))
-        .then(response => {
-          this.set = new Set(response.data.data)
-          this.contentNumber = this.getContentNumberInListById(this.content.id)
+      APIGateway.set.show(setId)
+        .then((response) => {
+          this.set = new Set(response)
+          this.contentNumber = this.getContentNumberInListById(this.$route.params.id)
+          this.set.loading = false
         })
-        .catch((er) => {
+        .catch(() => {
           this.set = new Set()
           this.set.loading = false
         })
@@ -190,5 +158,32 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+.video-player{
+  border-radius: 10px;
+  box-shadow: 0 6px 5px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+
+  .paginate {
+    flex-wrap: wrap;
+    :deep(.q-pagination) {
+      .q-btn {
+        width: 30px;
+        height: 30px;
+      }
+      .q-pagination__content {
+        .q-pagination__middle {
+          display: inline-flex;
+          vertical-align: middle;
+        }
+      }
+    }
+
+    @media screen and(max-width: 400px) {
+      &:deep(.q-pagination__content) {
+        display: block !important;
+      }
+    }
+  }
+}
 </style>

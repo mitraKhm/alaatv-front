@@ -20,7 +20,7 @@
                class="flex seen justify-center align-center">
             <i class="fi fi-rr-check icon" />
           </div>
-          <q-img v-if="type === 'pamphlet'"
+          <q-img v-if="type === 'pamphlet' && content.file.pamphlet.length > 0"
                  src="https://nodes.alaatv.com/upload/abrisham-panel-pdf.png"
                  class="content-list-image" />
         </div>
@@ -56,20 +56,21 @@
             </p>
           </div>
         </div>
-        <div v-else-if="type === 'pamphlet'"
+        <div v-else-if="type === 'pamphlet' && content.file.pamphlet.length > 0"
              class="sheet-icon flex justify-between items-center">
-          <div class="title-box">
-            <p class="contentListItem-title">
+          <div class="title-box title-box-pamphlet">
+            <p class="contentListItem-title ellipsis">
               {{ content.short_title }}
             </p>
             <p class="contentListItem-description ellipsis">
               {{ content.title }}
             </p>
           </div>
-          <div v-if="content.file">
-            <a :href="content.file.pamphlet[0].link">
-              <i class="fi fi-rr-download download-icon" />
-            </a>
+          <div>
+            <q-btn unelevated
+                   icon="isax:document-download"
+                   class="icon-btn"
+                   :href="content.file.pamphlet[0].link" />
           </div>
         </div>
       </div>
@@ -269,9 +270,17 @@ export default {
               color: #9fa5c0;
               max-width: 202px;
             }
-            @media screen and (max-width: 768px) {
-              font-size: 12px;
+            @media screen and (max-width: 1400px) {
+              max-width: 200px;
+            }
+            @media screen and (max-width: 1200px) {
+              max-width: 150px;
+            }
+            @media screen and (max-width: 1023px) {
               max-width: 338px;
+            }
+            @media screen and (max-width: 599px) {
+              max-width: 200px;
             }
             @media screen and (max-width: 350px) {
               font-size: 12px;
@@ -291,11 +300,47 @@ export default {
               color: #3e5480;
               margin-bottom: 0;
             }
+            @media screen and (max-width: 1550px) {
+              max-width: 235px;
+            }
+            @media screen and (max-width: 1200px) {
+              max-width: 150px;
+            }
+            @media screen and (max-width: 1023px) {
+              max-width: 100%;
+            }
             @media screen and (max-width: 768px) {
               font-size: 14px;
+              max-width: 200px;
             }
-            @media screen and (max-width: 350px) {
-              font-size: 14px;
+          }
+
+          &.title-box-pamphlet {
+            max-width: 180px;
+            .contentListItem-title {
+              @media screen and (max-width: 1200px) {
+                max-width: 130px;
+              }
+              @media screen and (max-width: 1023px) {
+                max-width: 338px;
+              }
+            }
+            .contentListItem-description {
+              @media screen and (max-width: 1200px) {
+                max-width: 130px;
+              }
+              @media screen and (max-width: 1023px) {
+                max-width: 338px;
+              }
+            }
+            @media screen and (max-width: 1200px) {
+              max-width: 150px;
+            }
+            @media screen and (max-width: 1023px){
+              max-width: 338px;
+            }
+            @media screen and (max-width: 599px) {
+              max-width: 166px;
             }
           }
         }

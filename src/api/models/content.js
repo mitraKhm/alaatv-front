@@ -2,22 +2,61 @@ import APIRepository from '../classes/APIRepository'
 import { apiV2 } from 'src/boot/axios'
 import { Content } from 'src/models/Content'
 import { ProductList } from 'src/models/Product'
+import { Comment } from 'src/models/Comment'
+import { APIGateway } from 'src/api/APIGateway'
 const APIAdresses = {
-  admin: '/admin/contents',
-  show: (id) => '/c/' + id,
-  showAdmin: (id) => '/admin/contents/' + id,
-  update: (id) => `/admin/contents/${id}/`,
-  relatedProducts: (id) => '/c/' + id + '/products',
-  favored: (id) => '/c/' + id + '/favored',
-  unfavored: (id) => '/c/' + id + '/unfavored',
+  base: '/c',
   search: '/search',
+  admin: '/admin/contents',
+  timestampSet: '/timepoint',
+  show: (id) => '/c/' + id,
   delete: '/admin/contents/destroy',
-  bulkEditText: '/admin/contents/bulk-edit-text',
   bulkUpdate: '/admin/contents/bulk-update',
+  presigned: '/admin/upload/presigned-request',
+  bulkEditText: '/admin/contents/bulk-edit-text',
   bulkEditTags: '/admin/contents/bulk-edit-tags',
-  timestampSet: 'timepoint',
-  timestampGet: (id) => `timepoint/${id}`,
-  presigned: '/admin/upload/presigned-request'
+  favored: (id) => '/c/' + id + '/favored',
+  update: (id) => `/admin/contents/${id}/`,
+  getTimestamp: (id) => `/timepoint/${id}`,
+  showAdmin: (id) => '/admin/contents/' + id,
+  deleteTimestamp: (id) => `/timepoint/${id}`,
+  updateTimestamp: (id) => `/timepoint/${id}`,
+  unfavored: (id) => '/c/' + id + '/unfavored',
+  relatedProducts: (id) => '/c/' + id + '/products',
+  timestampBookmarkStatus: (id, status) => '/c/timepoint/' + id + '/' + status,
+  saveComment: '/comment',
+  updateComment: (id) => '/comment/' + id,
+  watchedVideo: '/watched',
+  unWatchedVideo: '/unwatched',
+  adminContent: {
+    create: {
+      base: '/admin/user'
+    },
+    edit: {
+      base: '/admin/user/'
+    },
+    index: {
+      base: '/admin/user'
+    },
+    show: {
+      base: '/admin/user/'
+    }
+  },
+  scheduleManagement: {
+    create: {
+      base: '/admin/user'
+    },
+    edit: {
+      base: '/admin/user/'
+    },
+    index: {
+      base: '/admin/user'
+    },
+    show: {
+      base: '/admin/user/'
+    }
+  }
+
 }
 export default class ContentAPI extends APIRepository {
   constructor() {
@@ -36,18 +75,20 @@ export default class ContentAPI extends APIRepository {
       bulkEditText: this.name + this.APIAdresses.bulkEditText,
       bulkUpdate: this.name + this.APIAdresses.bulkUpdate,
       bulkEditTags: this.name + this.APIAdresses.bulkEditTags,
-      timestampGet: id => this.name + this.APIAdresses.timestampGet(id),
+      getTimestamp: id => this.name + this.APIAdresses.getTimestamp(id),
+      updateTimestamp: id => this.name + this.APIAdresses.updateTimestamp(id),
+      deleteTimestamp: id => this.name + this.APIAdresses.deleteTimestamp(id),
       presigned: this.name + this.APIAdresses.presigned
     }
   }
 
-  show(data) {
+  show(data, cache = { TTL: 1000 }) {
     return this.sendRequest({
       apiMethod: 'get',
       api: this.api,
       request: this.APIAdresses.show(data),
       cacheKey: this.CacheList.show(data),
-      ...(data?.cache && { cache: data.cache }),
+      ...(cache && { cache }),
       resolveCallback: (response) => {
         return new Content(response.data.data)
       },
@@ -57,7 +98,7 @@ export default class ContentAPI extends APIRepository {
     })
   }
 
-  favored (data = {}, cache = { TTL: 100 }) {
+  favored(data = {}, cache = { TTL: 1000 }) {
     return this.sendRequest({
       apiMethod: 'post',
       api: this.api,
@@ -73,7 +114,7 @@ export default class ContentAPI extends APIRepository {
     })
   }
 
-  unfavored (data = {}, cache = { TTL: 100 }) {
+  unfavored(data = {}, cache = { TTL: 1000 }) {
     return this.sendRequest({
       apiMethod: 'post',
       api: this.api,
@@ -89,15 +130,17 @@ export default class ContentAPI extends APIRepository {
     })
   }
 
-  showAdmin(data) {
+  showAdmin(contentId, cache) {
     return this.sendRequest({
       apiMethod: 'get',
       api: this.api,
-      request: this.APIAdresses.showAdmin(data),
-      cacheKey: this.CacheList.showAdmin(data),
-      ...(data?.cache && { cache: data.cache }),
+      request: this.APIAdresses.showAdmin(contentId),
+      cacheKey: this.CacheList.showAdmin(contentId),
+      ...(cache && { cache }),
       resolveCallback: (response) => {
-        return new Content(response.data.data)
+        const content = new Content(response.data.data)
+        // fillFakeData(content)
+        return content
       },
       rejectCallback: (error) => {
         return error
@@ -109,36 +152,39 @@ export default class ContentAPI extends APIRepository {
     return this.sendRequest({
       apiMethod: 'put',
       api: this.api,
-      request: this.APIAdresses.update(data.data.id),
-      cacheKey: this.CacheList.update(data.data.id),
-      ...(data?.cache && { cache: data.cache }),
+      request: this.APIAdresses.update(data.id),
+      cacheKey: this.CacheList.update(data.id),
       resolveCallback: (response) => {
         return new Content(response.data.data)
       },
       rejectCallback: (error) => {
         return error
       },
-      data: this.getNormalizedSendData({
-        contentset_id: null, // contentSet Id
-        isFree: null, // contentSet Id
-        name: null, // Title for content,
-        description: null, // Description for content
-        thumbnail: null, // thumbnail for contentfd
-        validSinceDate: null, // time for publish content
-        forrest_tree: null, // tree for content
-        order: null, // order of content
-        enable: null, // content status
-        display: null // content display status
-      }, data.data)
+      data: {
+        display: 1,
+        ...data
+      }
+      // data: this.getNormalizedSendData({
+      //   contentset_id: null, // contentSet Id
+      //   isFree: null, // contentSet Id
+      //   name: null, // Title for content,
+      //   description: null, // Description for content
+      //   thumbnail: null, // thumbnail for contentfd
+      //   validSinceDate: null, // time for publish content
+      //   forrest_tree: null, // tree for content
+      //   order: null, // order of content
+      //   enable: null, // content status
+      //   display: 1 // content display status
+      // }, data)
     })
   }
 
-  relatedProducts(data, cache) {
+  relatedProducts(contentId, cache) {
     return this.sendRequest({
       apiMethod: 'get',
       api: this.api,
-      request: this.APIAdresses.relatedProducts(data.id),
-      cacheKey: this.CacheList.relatedProducts(data.id),
+      request: this.APIAdresses.relatedProducts(contentId),
+      cacheKey: this.CacheList.relatedProducts(contentId),
       ...(cache && { cache }),
       resolveCallback: (response) => {
         return new ProductList(response.data.data)
@@ -202,7 +248,7 @@ export default class ContentAPI extends APIRepository {
 
   deleteContents(data) {
     return this.sendRequest({
-      apiMethod: 'delete',
+      apiMethod: 'post',
       api: this.api,
       request: this.APIAdresses.delete,
       cacheKey: this.CacheList.delete,
@@ -222,7 +268,7 @@ export default class ContentAPI extends APIRepository {
       apiMethod: 'get',
       api: this.api,
       request: this.APIAdresses.search,
-      cacheKey: this.CacheList.orderProduct,
+      cacheKey: this.CacheList.search,
       ...(data.cache && { cache: data.cache }),
       resolveCallback: (response) => {
         return {
@@ -237,13 +283,13 @@ export default class ContentAPI extends APIRepository {
     })
   }
 
-  SetTimestamp(data = {}) {
+  SetTimestamp(data = {}, cache) {
     return this.sendRequest({
       apiMethod: 'post',
       api: this.api,
       request: this.APIAdresses.timestampSet,
       cacheKey: this.CacheList.timestampSet,
-      ...(data.cache && { cache: data.cache }),
+      ...(cache && { cache }),
       resolveCallback: (response) => {
         return {
           timestamp: response.data
@@ -260,13 +306,54 @@ export default class ContentAPI extends APIRepository {
     })
   }
 
-  GetTimestamp(data = {}) {
+  UpdateTimestamp(data = {}, cache) {
+    return this.sendRequest({
+      apiMethod: 'put',
+      api: this.api,
+      request: this.APIAdresses.updateTimestamp(data.id),
+      cacheKey: this.CacheList.updateTimestamp(data.id),
+      ...(cache && { cache }),
+      resolveCallback: (response) => {
+        return {
+          timestamp: response.data
+        }
+      },
+      rejectCallback: (error) => {
+        return error
+      },
+      data: this.getNormalizedSendData({
+        content_id: null, // content Id
+        title: null, // Title for Timestamp
+        time: null // time of Video for timestamp in seconds
+      }, data)
+    })
+  }
+
+  GetTimestamp(data = {}, cache) {
     return this.sendRequest({
       apiMethod: 'get',
       api: this.api,
-      request: this.APIAdresses.timestampGet('131107'),
-      cacheKey: this.CacheList.timestampGet('131107'),
-      ...(data.cache && { cache: data.cache }),
+      request: this.APIAdresses.getTimestamp(data.id),
+      cacheKey: this.CacheList.getTimestamp(data.id),
+      ...(cache && { cache }),
+      resolveCallback: (response) => {
+        return {
+          timestamp: response.data
+        }
+      },
+      rejectCallback: (error) => {
+        return error
+      }
+    })
+  }
+
+  DeleteTimestamp(data = {}, cache) {
+    return this.sendRequest({
+      apiMethod: 'delete',
+      api: this.api,
+      request: this.APIAdresses.deleteTimestamp(data.id),
+      cacheKey: this.CacheList.deleteTimestamp(data.id),
+      ...(cache && { cache }),
       resolveCallback: (response) => {
         return {
           timestamp: response.data
@@ -297,4 +384,170 @@ export default class ContentAPI extends APIRepository {
       }, data.data)
     })
   }
+
+  setBookmarkTimepointFavoredStatus(data = {}) {
+    const mergedData = this.getNormalizedSendData({
+      id: '',
+      status: 'favored'
+    }, data)
+    return this.sendRequest({
+      apiMethod: 'post',
+      api: this.api,
+      request: this.APIAdresses.timestampBookmarkStatus(mergedData.id, mergedData.status),
+      resolveCallback: (response) => {
+        const defaultMessageObject = {
+          message: '' // String
+        }
+        return this.getNormalizedSendData(defaultMessageObject, response.data).message
+      },
+      rejectCallback: (error) => {
+        return error
+      }
+    })
+  }
+
+  getConsultingContentList(isPro) {
+    const setId = isPro ? 1597 : 1213
+    return APIGateway.set.getContents(setId)
+  }
+
+  saveComment(data = {}) {
+    const mergedData = this.getNormalizedSendData({
+      commentable_id: '',
+      commentable_type: 'content',
+      comment: ''
+    }, data)
+    return this.sendRequest({
+      apiMethod: 'post',
+      api: this.api,
+      request: this.APIAdresses.saveComment,
+      resolveCallback: (response) => {
+        return new Comment(response.data.data)
+      },
+      rejectCallback: (error) => {
+        return error
+      },
+      data: mergedData
+    })
+  }
+
+  updateComment(data = {}) {
+    const mergedData = this.getNormalizedSendData({
+      id: '',
+      data: {}
+    }, data)
+    return this.sendRequest({
+      apiMethod: 'post',
+      api: this.api,
+      request: this.APIAdresses.updateComment(mergedData.id),
+      resolveCallback: (response) => {
+        return new Comment(response.data.data)
+      },
+      rejectCallback: (error) => {
+        return error
+      },
+      data: mergedData.data
+    })
+  }
+
+  setVideoWatched(data = {}) {
+    const mergedData = this.getNormalizedSendData({
+      // seconds_watched: null,
+      studyevent_id: null,
+      completely_watched: null,
+      watchable_id: null,
+      watchable_type: 'content'
+    }, data)
+    if (data.seconds_watched) {
+      mergedData.seconds_watched = data.seconds_watched
+    }
+
+    return this.sendRequest({
+      apiMethod: 'post',
+      api: this.api,
+      request: this.APIAdresses.watchedVideo,
+      resolveCallback: (response) => {
+        const defaultResponseObject = {
+          id: '',
+          watchable_id: '',
+          watchable_type: 'content',
+          watchable: new Content(),
+          seconds_watched: null
+        }
+        return this.getNormalizedSendData(defaultResponseObject, response.data.data)
+      },
+      rejectCallback: (error) => {
+        return error
+      },
+      data: mergedData
+    })
+  }
+
+  setVideoUnWatched(data = {}) {
+    const mergedData = this.getNormalizedSendData({
+      watchable_id: '',
+      watchable_type: 'content'
+    }, data)
+    return this.sendRequest({
+      apiMethod: 'post',
+      api: this.api,
+      request: this.APIAdresses.unWatchedVideo,
+      resolveCallback: (response) => {
+        const defaultResponseObject = {
+          message: '' // String
+        }
+        return this.getNormalizedSendData(defaultResponseObject, response.data.data)
+      },
+      rejectCallback: (error) => {
+        return error
+      },
+      data: mergedData
+    })
+  }
 }
+
+// const fillFakeData = (content) => {
+//   content.forrest_tree_tags = forrestTreeTags
+//   content.hls = 'https://alaatv.com/hls/input.m3u8'
+// }
+
+// const forrestTreeTags = [
+//   {
+//     id: '63ff427566344faf860f0f9f',
+//     title: 'دبیر 1',
+//     parent: {
+//       id: '63f37272c590054efc012d12',
+//       title: 'دبیر'
+//     },
+//     ancestors: [
+//       {
+//         id: '63f37272c590054efc012d12',
+//         title: 'دبیر'
+//       }
+//     ],
+//     order: '0',
+//     type: null,
+//     number_of_children: 0,
+//     updated_at: '2023-03-01 15:49:18',
+//     created_at: '2023-03-01 15:47:57'
+//   },
+//   {
+//     id: '63ff427c66344faf860f0fa0',
+//     title: 'دبیر 2',
+//     parent: {
+//       id: '63f37272c590054efc012d12',
+//       title: 'دبیر'
+//     },
+//     ancestors: [
+//       {
+//         id: '63f37272c590054efc012d12',
+//         title: 'دبیر'
+//       }
+//     ],
+//     order: '2',
+//     type: null,
+//     number_of_children: 1,
+//     updated_at: '2023-03-01 15:49:18',
+//     created_at: '2023-03-01 15:48:04'
+//   }
+// ]

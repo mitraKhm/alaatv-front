@@ -2,53 +2,40 @@
   <div class="show-product-review"
        :style="options.style"
        :class="options.className">
-    <q-btn icon="isax:receipt-1"
-           flat
-           color="primary"
-           size="15px"
-           style="top: 70px; right: 1060px; z-index: 2"
-           @click="addToFavored" />
-    <q-btn icon="isax:share"
-           flat
-           color="primary"
-           size="15px"
-           style="top: 70px; right: 1070px; z-index: 2">
-      <q-popup-proxy :offset="[10, 10]"
-                     transition-show="flip-up"
-                     transition-hide="flip-down">
-        <q-banner dense
-                  rounded>
-          <share-network :url="pageUrl"
-                         @on-select="shareGiftCard" />
-        </q-banner>
-      </q-popup-proxy>
-    </q-btn>
-
     <div class="product-description">
       <div class="description-container">
         <p class="title-style">
           بررسی محصول
         </p>
         <q-skeleton v-if="product.loading"
-                    class="description-text"
+                    class="description-text custom-card"
                     min-width="100%"
-                    type="article" />
-        <q-card class="description-text"
-                v-html="product.description?.short || product.description?.long" />
+                    type="rect" />
+
+        <q-card v-else-if="description"
+                class="description-text custom-card">
+          <span v-html="description" />
+        </q-card>
+        <q-card v-else
+                class="description-text custom-card">
+          <span>
+            توضیحی برای این محصول وجود ندارد
+          </span>
+        </q-card>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { mixinWidget } from 'src/mixin/Mixins'
-import { Product } from 'src/models/Product'
-import ShareNetwork from 'src/components/ShareNetwork.vue'
+import { Product } from 'src/models/Product.js'
+import { mixinWidget, mixinPrefetchServerData } from 'src/mixin/Mixins.js'
+import { APIGateway } from 'src/api/APIGateway.js'
+import { AEE } from 'assets/js/AEE/AnalyticsEnhancedEcommerce.js'
 
 export default {
-  name: 'productReview',
-  components: { ShareNetwork },
-  mixins: [mixinWidget],
+  name: 'ProductReview',
+  mixins: [mixinWidget, mixinPrefetchServerData],
   props: {
     options: {
       type: Object,
@@ -59,48 +46,21 @@ export default {
   },
   data() {
     return {
-      defaultOptions: {},
-      product: new Product(),
-      description: {
-        long: '',
-        short: '',
-        slogan: ''
-      },
-      share: { url: '', name: '' },
-      shareOptions: [
-        { name: 'telegram', value: 0, url: '' },
-        { name: 'whatsapp', value: 0, url: '' },
-        { name: 'mail', value: 0, url: '' },
-        { name: 'linkedIn', value: 0, url: '' },
-        { name: 'twitter', value: 0, url: '' }
-      ]
+      isFavored: false,
+      product: new Product()
     }
   },
   computed: {
-    pageUrl() {
-      return 'https://alaatv.com' + this.$route.fullPath
-    }
-  },
-  watch: {
-    options: {
-      deep: true,
-      handler(newValue) {
-        Object.assign(this.description, newValue)
-      }
-    }
-  },
-  created() {
-    this.loadProduct()
-  },
-  methods: {
-    addToFavored() {
-
-    },
-    shareGiftCard({ name, url }) {
-      window.open(url, '_blank')
-    },
-    getProductId () {
-      if (this.options.productId) {
+    // product: {
+    //   get () {
+    //     return new Product(this.$store.getters['Widgets/data']('ProductReview'))
+    //   },
+    //   set (newData) {
+    //     this.$store.dispatch('Widgets/updateData', { name: 'ProductReview', data: newData })
+    //   }
+    // },
+    productId () {
+      if (typeof this.options.productId !== 'undefined' && this.options.productId !== null) {
         return this.options.productId
       }
       if (this.options.urlParam && this.$route.params[this.options.urlParam]) {
@@ -109,26 +69,45 @@ export default {
       if (this.$route.params.id) {
         return this.$route.params.id
       }
+      return this.product.id
+    },
+    description () {
+      if (this.product.description.long) {
+        return this.product.description.long
+      } else if (this.product.description.short) {
+        return this.product.description.short
+      } else if (this.product.description.slogan) {
+        return this.product.description.slogan
+      }
       return null
-    },
-    loadProduct() {
-      this.getProductByRequest()
-    },
-
-    getProductByRequest() {
-      let promise = null
-      promise = this.$apiGateway.product.show({
-        data: { id: this.options.productId },
-        cache: { TTL: 10000 }
-      })
-      promise
-        .then((response) => {
-          this.product = new Product(response)
-        })
-        .catch(() => {
-        })
     }
-
+  },
+  methods: {
+    prefetchServerDataPromise() {
+      this.product.loading = true
+      return this.getProduct()
+    },
+    prefetchServerDataPromiseThen (data) {
+      this.product = new Product(data)
+      this.isFavored = data.is_favored_2
+      if (window) {
+        this.updateEECEventDetail()
+      }
+      this.product.loading = false
+    },
+    prefetchServerDataPromiseCatch () {
+      this.product.loading = false
+    },
+    updateEECEventDetail() {
+      AEE.productDetailViews('product.show', this.product.eec.getData(), {
+        TTl: 1000,
+        key: this.product.id
+      })
+    },
+    getProduct() {
+      this.product.loading = true
+      return APIGateway.product.show(this.productId)
+    }
   }
 }
 </script>
@@ -160,19 +139,18 @@ h2 {
 }
 
 .product-description {
-  display: flex;
-  justify-content: center;
   margin-bottom: 80px;
 
   .description-container {
-    width: 1140px;
+    //width: 1140px;
 
     .description-text {
-      background-color: #FFFFFF;
-      box-shadow: -2px -4px 10px rgba(255, 255, 255, 0.6), 2px 4px 10px rgba(54, 90, 145, 0.05);
-      border-radius: 20px;
       margin-top: 20px;
       padding: 10px 20px;
+
+      &:deep(h2) {
+        font-size: 25px;
+      }
     }
   }
 }
@@ -180,7 +158,6 @@ h2 {
 @media screen and (max-width: 1199px) {
   .product-description {
     .description-container {
-      width: 908px;
 
       .description-text {
 
@@ -193,7 +170,6 @@ h2 {
 @media screen and (max-width: 991px) {
   .product-description {
     .description-container {
-      width: 684px;
     }
   }
 }
@@ -210,10 +186,8 @@ h2 {
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin: 0 30px;
 
       .description-text {
-        width: 516px;
       }
     }
 
@@ -223,7 +197,6 @@ h2 {
 @media screen and (max-width: 575px) {
   .product-description {
     .description-container {
-      margin: 0 16px;
 
       .description-text {
         width: 100%;

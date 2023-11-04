@@ -167,7 +167,7 @@ export default {
       this.studyPlanList.loading = true
       const studyPlanNumber = 5
       try {
-        this.studyPlanList = await this.$apiGateway.abrisham.getStudyEvents(studyPlanNumber)
+        this.studyPlanList = await this.$apiGateway.studyPlan.getStudyEvents(studyPlanNumber)
         this.studyPlanList.loading = false
         if (!this.currentDate) {
           await this.loadTodayPlan()
@@ -195,7 +195,7 @@ export default {
       this.studyPlanList.loading = true
       if (!planId) return
       try {
-        const studyPlans = await this.$apiGateway.abrisham.getPlan(planId)
+        const studyPlans = await this.$apiGateway.studyPlan.getPlans(planId)
         this.setPlan(planId, studyPlans)
         this.studyPlanList.loading = false
       } catch (e) {
@@ -352,7 +352,7 @@ export default {
 .study-plan-group {
   .study-plan {
     background-color: #ffe2bc;
-    color: var(--abrishamMain);
+    color: #3e5480;
 
     padding: 40px 60px 51px 60px;
     border-radius: 30px;
@@ -491,7 +491,7 @@ export default {
           font-weight: normal;
           line-height: normal;
           text-align: right;
-          color: var(--abrishamMain);
+          color: #3e5480;
           @media only screen and (max-width: 768px) {
             font-size: 14px;
           }

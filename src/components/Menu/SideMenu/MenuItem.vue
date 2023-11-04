@@ -1,11 +1,12 @@
 <template>
-  <div v-for="(item , index) in menu"
-       :key="index">
-    <q-expansion-item v-if="item.children && item.children.length && item.show"
-                      v-model="item.open"
-                      :header-style="{fontSize:'16px', height:'40px', borderRadius: '14px'}"
+  <div v-for="(item , index) in computedMenu"
+       :key="index"
+       class="menu-item">
+    <q-expansion-item v-if="!loading && item.children && item.children.length > 0"
+                      :header-style="{height:'40px', borderRadius: '14px'}"
                       :label="item.title"
                       :icon="item.icon"
+                      :default-opened="item.open"
                       class="side-expansion-list">
       <div class="expansion-body">
         <q-separator dark
@@ -15,27 +16,47 @@
         <q-list class="list-expansion">
           <div v-for="(subItem , i) in item.children"
                :key="i">
-            <menu-item v-if="subItem.children && subItem.children.length && item.show"
-                       :menu="[subItem]" />
-            <q-item v-else-if="subItem.show"
-                    :to="{ name: subItem.routeName, params: subItem.params }"
+            <menu-item v-if="subItem.children && subItem.children.length > 0"
+                       :items="[subItem]"
+                       @item-selected="itemSelected(item)" />
+            <q-item v-else
+                    v-ripple
+                    clickable
+                    :active="isActive(subItem)"
+                    :to="redirectRoute(subItem)"
                     class="list-child-item"
-                    exact-active-class="active-route">
-              <q-item-section class="list-child-section">
+                    exact-active-class="active-route"
+                    @click="itemSelected(subItem)">
+              <q-tooltip v-if="showChildItemTooltip"
+                         anchor="top middle"
+                         self="bottom middle"
+                         :offset="[10, 10]">
                 {{ subItem.title }}
+              </q-tooltip>
+              <q-item-section class="list-child-section">
+                <q-item-label lines="1">{{ subItem.title }}</q-item-label>
               </q-item-section>
+              <q-badge v-if="subItem.badge"
+                       class="badge q-py-xs"
+                       align="middle">
+                {{subItem.badge}}
+              </q-badge>
               <span class="indicator" />
             </q-item>
           </div>
         </q-list>
       </div>
     </q-expansion-item>
-    <q-item v-else-if="item.show"
-            v-model="clickedItem"
-            :to="(item.routeName) ? {name: item.routeName} : null"
+    <!--    (item.title === clickedItem.title) || -->
+    <q-item v-else-if="!loading && !item.children"
+            v-ripple
+            clickable
+            :active="isActive(item)"
+            :to="redirectRoute(item)"
             class="item-list"
             :class="{ 'alone-item': !item.children }"
-            exact-active-class="active-route">
+            exact-active-class="active-route"
+            @click="itemSelected(item)">
       <div class="section-title">
         <q-item-section class="list-section title-icon"
                         avatar>
@@ -48,6 +69,11 @@
         <!--        <span class="indicator" />-->
       </div>
     </q-item>
+    <q-badge v-if="item.badge"
+             align="middle">
+      {{item.badge}}
+    </q-badge>
+    <q-skeleton v-if="loading" />
   </div>
 </template>
 
@@ -55,15 +81,80 @@
 export default {
   name: 'MenuItem',
   props: {
+    menuItemsColor: {
+      type: String,
+      default: ''
+    },
     menu: {
-      type: Object,
-      default: () => {},
-      required: false
+      // ToDO: will be deprecate
+      type: Array,
+      default: () => []
+    },
+    items: {
+      type: Array,
+      default: () => []
+    },
+    showChildItemTooltip: {
+      type: Boolean,
+      default: false
+    },
+    loading: {
+      type: Boolean,
+      default: () => {
+        return false
+      }
     }
   },
+  emits: ['itemSelected', 'update:menu'],
   data () {
     return {
-      clickedItem: null
+      clickedItem: {
+        title: ''
+      },
+      menuItems: []
+    }
+  },
+  computed: {
+    computedMenu: {
+      get () {
+        if (this.menu.length > 0) {
+          return this.menu
+        } else {
+          return this.items
+        }
+      },
+      set (value) {
+        this.menuItems = value
+        this.$emit('update:menu', this.menuItems)
+      }
+    },
+    selectedTopic() {
+      return this.$store.getters['TripleTitleSet/selectedTopic']
+    }
+  },
+  methods: {
+    isActive(item) {
+      return (item.title === this.selectedTopic) || (item.title === this.clickedItem.title)
+    },
+    redirectRoute(item) {
+      if (item.tags) {
+        return { name: 'Public.Content.Search', query: { 'tags[]': item.tags } }
+      } else if (item.href) {
+        return { path: item.href }
+      } else if (!item.routeName) {
+        return undefined
+      }
+      return { name: item.routeName }
+    },
+    itemSelected(item) {
+      this.clickedItem = item
+      this.$emit('itemSelected', item)
+      if (!this.redirectRoute(item) && item.externalLink) {
+        window.location.href = item.externalLink
+      }
+    },
+    inactiveAllItems () {
+
     }
   }
 }
@@ -166,8 +257,10 @@ export default {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          font-size: 16px;
-          font-weight: 500;
+          font-style: normal;
+          font-weight: 400;
+          font-size: 15px;
+          line-height: 28px;
           cursor: pointer;
           padding: 0 14px 0 10px;
           border-radius: 14px;
@@ -215,13 +308,17 @@ export default {
       }
 
       .side-expansion-list {
+        margin-left: 12px;
+
+        :deep(.q-item) {
+          padding-left: 40px;
+        }
         &.top-expansion {
           margin-bottom: 10px;
         }
 
         .expansion-body {
-          display: flex;
-          margin-left: 8px;
+          color: v-bind('menuItemsColor');
         }
 
         .q-expansion-item__content {
@@ -243,6 +340,9 @@ export default {
 
               .item-list-expansion-title {
                 justify-content: start;
+                font-weight: 400;
+                font-size: 20px;
+                line-height: 28px;
               }
             }
 
@@ -257,12 +357,21 @@ export default {
             }
 
             .list-child-item {
-              height: 30px;
+              height: 40px;
               justify-content: right;
               margin-bottom: 8px;
-              width: 157px;
+              margin-left: 20px;
+              //width: 157px;
               border-radius: 10px;
               padding: 0 14px;
+              display: flex;
+              align-items: center;
+              .list-child-section {
+                font-weight: 400;
+                font-size: 15px;
+                line-height: 25px;
+                margin-right: 5px;
+              }
               @media screen and (max-width: 1439px) {
                 width: 148px;
               }
@@ -277,7 +386,7 @@ export default {
               }
 
               .list-child-section {
-                font-size: 14px !important;
+                //font-size: 16px !important;
                 justify-content: center;
               }
             }
@@ -338,6 +447,30 @@ export default {
       margin-right: 12px;
       transform: matrix(-1, 0, 0, 1, 0, 0);
     }
+  }
+}
+.expansion-header {
+  font-size: 20px;
+  line-height: 28px;
+}
+</style>
+
+<style lang="css" scoped>
+.badge{
+  animation: badge 1s infinite;
+}
+@keyframes badge {
+  0% {
+    -moz-box-shadow:0 0 0 0 rgba(55, 55, 55, 0.68);
+    box-shadow:0 0 0 0 rgba(55, 55, 55, 0.68);
+  }
+  70% {
+    -moz-box-shadow:0 0 0 10px rgba(0,0,0,0);
+    box-shadow:0 0 0 10px rgba(0,0,0,0);
+  }
+  100% {
+    -moz-box-shadow:0 0 0 0 rgba(0,0,0,0);
+    box-shadow:0 0 0 0 rgba(0,0,0,0);
   }
 }
 </style>

@@ -17,13 +17,16 @@
             <div class="order-item-header">
               <div class="title ellipsis">
                 {{ order.grand.title }}
+                <q-tooltip>
+                  {{ order.grand.title }}
+                </q-tooltip>
               </div>
 
               <q-btn v-if="order.orderProductId"
                      unelevated
                      class="trash-button"
                      icon="isax:trash"
-                     @click="changeDialogState(true, order.orderProductId)" />
+                     @click="changeDialogState(true,order, order.orderProductId)" />
             </div>
 
             <div v-if="order.grand && order.grand.attributes && order.grand.attributes.info"
@@ -112,7 +115,7 @@
                         <q-btn unelevated
                                :class="index === 0 ? 'trash-button': 'hidden-trash-button'"
                                icon="isax:trash"
-                               @click="changeDialogState(true, orderProduct.id)" />
+                               @click="changeDialogState(true, order, orderProduct)" />
                       </div>
                     </div>
                   </q-card-section>
@@ -163,7 +166,7 @@
         </div>
 
         <div class="surely-delete-button"
-             @click="removeItem(clickedItemIdToRemove)">
+             @click="removeItem(clickedProductToRemove)">
           بله، مطمئن هستم
         </div>
       </q-card-actions>
@@ -172,12 +175,12 @@
 </template>
 
 <script>
-import Widgets from 'components/PageBuilder/Widgets'
 import { Product } from 'src/models/Product'
+import { mixinWidget } from 'src/mixin/Mixins.js'
 
 export default {
   name: 'cartView',
-  mixins: [Widgets],
+  mixins: [mixinWidget],
 
   props: {
     getData: {
@@ -189,7 +192,8 @@ export default {
       dialogState: false,
       test: null,
       expandedObject: {},
-      clickedItemIdToRemove: null
+      clickedItemIdToRemove: null,
+      clickedProductToRemove: null
     }
   },
 
@@ -260,9 +264,18 @@ export default {
         })
     },
 
-    changeDialogState (state, itemId) {
+    changeDialogState (state, cartItem, orderProduct) {
+      let itemId = cartItem?.grand?.id
+      if (!itemId) {
+        itemId = cartItem?.orderProductId
+      }
+      if (typeof orderProduct !== 'undefined') {
+        itemId = orderProduct.id
+      }
+
       if (itemId) {
         this.clickedItemIdToRemove = itemId
+        this.clickedProductToRemove = orderProduct.product
       }
       this.dialogState = state
     }
@@ -821,7 +834,7 @@ export default {
         color: #FFFFFF;
         width: 144px;
         height: 40px;
-        background: #8075DC;
+        background: $primary;
         box-shadow: 0 4px 12px rgba(62, 61, 67, 0.15);
         border-radius: 8px;
         cursor: pointer;

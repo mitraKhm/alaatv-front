@@ -1,10 +1,21 @@
 <template>
-  <option-panel-tabs v-model:options="localOptions" />
+  <option-panel-tabs v-model:options="localOptions">
+    <template #main-tab>
+      <div class="option-panel-container">
+        <div class="row">
+          <div class="col-12">
+            <q-input v-model="localOptions.title" />
+          </div>
+        </div>
+      </div>
+    </template>
+  </option-panel-tabs>
 </template>
 
 <script>
 import { defineComponent } from 'vue'
-import { mixinOptionPanel, OptionPanelTabs } from 'quasar-ui-q-page-builder'
+import { mixinOptionPanel } from 'quasar-ui-q-page-builder'
+import OptionPanelTabs from 'quasar-ui-q-page-builder/src/components/OptionPanelComponents/OptionPanelTabs.vue'
 
 export default defineComponent({
   name: 'OptionPanel',
@@ -18,6 +29,7 @@ export default defineComponent({
       }
     }
   },
+  emits: ['update:options'],
   data() {
     return {
       defaultOptions: {
@@ -25,7 +37,8 @@ export default defineComponent({
         height: 'auto',
         boxed: false,
         boxedWidth: 1200,
-        style: {}
+        style: {},
+        title: 'سبد خرید شما'
       }
     }
   },

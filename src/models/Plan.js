@@ -1,10 +1,12 @@
+import { Major } from './Major.js'
+import { ContentList } from './Content.js'
 import { Collection, Model } from 'js-abstract-model'
-import * as PersianDate from 'persian-date'
-import { ContentList } from './Content'
-import { Major } from './Major'
+// ToDo: use moment-jalaali
+// import * as PersianDate from 'persian-date'
+const PersianDate = null
 
 class Plan extends Model {
-  constructor (data) {
+  constructor(data) {
     super(data, [
       { key: 'id' },
       {
@@ -15,8 +17,13 @@ class Plan extends Model {
       { key: 'start' },
       { key: 'end' },
       { key: 'date' },
+      { key: 'product' },
+      { key: 'has_watched' },
       { key: 'description' },
       { key: 'long_description' },
+      { key: 'url' },
+      { key: 'voice' },
+      { key: 'video' },
       {
         key: 'contents',
         relatedModel: ContentList
@@ -36,7 +43,7 @@ class Plan extends Model {
     ])
   }
 
-  convertDate () {
+  convertDate() {
     const dayOfWeek = new PersianDate(new Date(this.date)).format('dddd')
     const dateOfMonth = new PersianDate(new Date(this.date)).format('D MMMM')
 
@@ -45,7 +52,7 @@ class Plan extends Model {
 }
 
 class PlanList extends Collection {
-  model () {
+  model() {
     return Plan
   }
 }

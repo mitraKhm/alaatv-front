@@ -1,5 +1,6 @@
 <template>
-  <div class="main-layout">
+  <div class="main-layout"
+       :class="{'hasFooter': hasFooter}">
     <quasar-template-builder @onResize="resize">
       <template #header>
         <template-header :type="getTemplateHeaderType" />
@@ -39,33 +40,40 @@
               </q-card-actions>
             </q-card>
           </q-dialog>
-          <q-dialog v-model="loginDialog">
-            <auth-login />
+          <q-dialog v-model="loginDialog"
+                    :persistent="!domainSameWithAppDomain">
+            <div class="q-mb-lg">
+              <auth-login />
+            </div>
           </q-dialog>
-
+          <!--          <version-check />-->
           <router :include="keepAliveComponents" />
         </div>
-        <floating-action-button />
+        <floating-action-button v-if="canShowFloatingActionBtn" />
       </template>
       <template #footer>
-        <alaa-footer />
+        <alaa-footer :type="getFooterType" />
       </template>
     </quasar-template-builder>
   </div>
 </template>
 
 <script>
+import { User } from 'src/models/User.js'
 import Router from 'src/router/Router.vue'
+import AuthLogin from 'src/components/Auth.vue'
 import AlaaFooter from 'src/components/Widgets/Footer/Footer.vue'
 import KeepAliveComponents from 'src/assets/js/KeepAliveComponents.js'
 import templateHeader from 'src/components/Template/Header/TemplateHeader.vue'
 import TemplateSideBar from 'src/components/Template/SideBard/TemplateSideBar.vue'
 import QuasarTemplateBuilder from 'quasar-template-builder/src/quasar-template-builder.vue'
 import FloatingActionButton from 'components/Template/FloatingActionButton/FloatingActionButton.vue'
-import AuthLogin from 'components/Auth.vue'
+import { mixinAuth } from 'src/mixin/Mixins'
+// import VersionCheck from 'components/VersionCheck/VersionCheck.vue'
 
 export default {
   components: {
+    // VersionCheck,
     AuthLogin,
     Router,
     AlaaFooter,
@@ -74,23 +82,34 @@ export default {
     FloatingActionButton,
     QuasarTemplateBuilder
   },
+  mixins: [mixinAuth],
   data () {
     return {
+      user: new User(),
+      isUserLogin: false,
       contentVerticalScrollPosition: 0,
       keepAliveComponents: KeepAliveComponents
     }
   },
   computed: {
+    hasFooter () {
+      return this.$store.getters['AppLayout/layoutFooter'] && this.$store.getters['AppLayout/layoutFooterVisible']
+    },
+    canShowFloatingActionBtn () {
+      return this.user.hasPermission('editSiteSetting') && (this.hasDynamicSetting || this.hasDynamicSettingWithParams)
+    },
+    hasDynamicSetting () {
+      return !!this.$route.meta?.hasDynamicSetting
+    },
+    hasDynamicSettingWithParams () {
+      return !!this.$route.meta?.hasDynamicSettingWithParams
+    },
     loginDialog: {
       get () {
         return this.$store.getters['AppLayout/loginDialog']
       },
       set (newValue) {
-        if (!newValue) {
-          this.$store.commit('AppLayout/updateLoginDialog', false)
-          return
-        }
-        this.$store.dispatch('AppLayout/showLoginDialog')
+        this.$store.commit('AppLayout/updateLoginDialog', !!newValue)
       }
     },
     confirmDialogData () {
@@ -102,11 +121,21 @@ export default {
     getLeftDrawerType() {
       return this.$store.getters['AppLayout/layoutLeftSideBarType']
     },
+    getFooterType() {
+      return this.$store.getters['AppLayout/layoutFooterType']
+    },
     calculateHeightStyle() {
       return this.$store.getters['AppLayout/calculateContainerFullHeight']
     }
   },
+  mounted () {
+    this.loadAuthData()
+  },
   methods: {
+    loadAuthData () { // prevent Hydration node mismatch
+      this.user = this.$store.getters['Auth/user']
+      this.isUserLogin = this.$store.getters['Auth/isUserLogin']
+    },
     onContentInsideScroll (data) {
       this.$store.commit('AppLayout/updateLayoutHeaderElevated', data > 0)
     },
@@ -152,6 +181,11 @@ export default {
   :deep(.q-layout__section--marginal) {
     background-color: transparent;
     color: inherit;
+  }
+  :deep(.q-drawer-container) {
+    .q-drawer {
+      background: transparent;
+    }
   }
   .content-inside {
     //padding-top: 20px;

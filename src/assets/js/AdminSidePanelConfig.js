@@ -424,12 +424,35 @@ const list = [
     open: false
   },
   {
+    title: 'مدیریت درخت های برچسب',
+    icon: 'isax:ticket',
+    routeName: 'Admin.Forrest.Index',
+    active: false,
+    show: true,
+    open: false
+  },
+  {
+    title: 'مدیریت مجموعه محتوا ها',
+    icon: 'isax:ticket',
+    routeName: 'Admin.Set.Index',
+    active: false,
+    show: true,
+    open: false
+  },
+  {
     title: 'چیدمان صفحه',
     icon: 'isax:setting-2',
     routeName: 'Admin.Settings',
     show: true,
     active: false,
     children: []
+  },
+  {
+    title: 'مدیریت محصولات',
+    icon: 'isax:setting-2',
+    routeName: 'Admin.Product.Index',
+    show: true,
+    active: false
   }
   // {
   //   title: 'سوالات متداول',

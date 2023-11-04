@@ -58,8 +58,8 @@
 </template>
 
 <script>
-import ContentListItem from 'src/components/DashboardAbrisham/ContentListItem.vue'
 import { Content, ContentList } from 'src/models/Content.js'
+import ContentListItem from 'src/components/DashboardAbrisham/ContentListItem.vue'
 
 export default {
   name: 'ContentList',
@@ -110,6 +110,8 @@ export default {
     }
   },
 
+  emits: ['itemClicked'],
+
   data() {
     return {
       selectedItem: new Content()
@@ -142,7 +144,7 @@ export default {
       this.$emit('clicked')
     },
     changeSelectedId(content) {
-      this.$emit('input', content)
+      this.$emit('itemClicked', content)
     }
   }
 }
@@ -161,19 +163,13 @@ export default {
   overflow: hidden;
   margin-bottom: 50px;
   @media screen and (max-width: 1023px){
-    max-height: 707px;
-    min-height: fit-content;
-
+    height: 540px;
   }
   @media screen and (max-width: 1200px) {
     border-radius: 20px;
   }
   @media screen and (max-width: 768px) {
     border-radius: 15px;
-  }
-  @media screen and (max-width: 600px) {
-    border-radius: 15px;
-    max-height: 540px;
   }
   &.no-data{
     height: 170px;
@@ -223,7 +219,7 @@ export default {
       font-size: 14px;
       padding-bottom: 0;
       justify-self: end;
-      color: var(--abrishamGray);
+      color: #9fa5c0;
       cursor: pointer;
       @media screen and (max-width: 768px) {
         font-size: 12px;
@@ -235,7 +231,7 @@ export default {
   .content-list-items-box {
     margin-top: 20px;
     position: relative;
-    height: 100%;
+    height: calc( 100% - 101px);
 
     .content-box {
       position: absolute;

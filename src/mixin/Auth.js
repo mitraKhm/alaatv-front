@@ -1,19 +1,29 @@
-import API_ADDRESS from 'src/api/Addresses'
+import { User } from 'src/models/User.js'
+import { APIGateway } from 'src/api/APIGateway.js'
 
 const mixinAuth = {
-  computed: {
-    user: {
-      get () {
-        return this.$store.getters['Auth/user']
-      },
-      set (newInfo) {
-        this.$store.commit('Auth/updateUser', newInfo)
-      }
+  data () {
+    return {
+      user: new User(),
+      isUserLogin: false,
+      domainSameWithAppDomain: false,
+      appDomain: this.$env?.VITE_APP_DOMAIN
     }
   },
+  mounted () {
+    this.loadAuthData()
+    this.loadDomainSameWithAppDomain()
+  },
   methods: {
+    loadAuthData () { // prevent Hydration node mismatch
+      this.user = this.$store.getters['Auth/user']
+      this.isUserLogin = this.$store.getters['Auth/isUserLogin']
+    },
+    loadDomainSameWithAppDomain () { // prevent Hydration node mismatch
+      this.domainSameWithAppDomain = window.location.host === this.appDomain
+    },
     async getUserData () {
-      this.$axios.get(API_ADDRESS.user.show_user)
+      APIGateway.user.showUser()
         .then((response) => {
           this.$store.commit('Auth/updateUser', response.data.data)
         })

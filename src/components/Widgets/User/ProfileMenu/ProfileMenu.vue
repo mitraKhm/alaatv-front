@@ -1,11 +1,13 @@
 <template>
-  <div class="sticky-menu">
+  <div class="ProfileMenu sticky-menu">
     <q-card class="custom-card">
       <q-card-section>
-        <div class="flex no-wrap">
-          <div>
-            <q-img :src="previewImg"
-                   class="previewImg" />
+        <div class="user-info">
+          <div class="user-photo">
+            <q-avatar>
+              <lazy-img :src="previewImg"
+                        class="full-width" />
+            </q-avatar>
             <q-file ref="file"
                     v-model="file"
                     :model-value="file"
@@ -24,12 +26,14 @@
                  class="controls">
               <q-btn icon="isax:tick-circle"
                      size="xs"
+                     round
                      color="green"
                      text-color="white"
                      class="controls-btn q-mr-xs"
                      @click="confirmUpdate" />
               <q-btn icon="isax:close-circle"
                      size="xs"
+                     round
                      color="red"
                      text-color="white"
                      class="controls-btn"
@@ -37,7 +41,7 @@
             </div>
           </div>
           <div class="q-ml-lg namePhone full-width">
-            <div class="fullName ellipsis">
+            <div class="fullName ellipsis-2-lines">
               <q-tooltip> {{ fullName }} </q-tooltip>
               {{ fullName }}
             </div>
@@ -46,93 +50,165 @@
               {{ user.mobile }}
             </div>
           </div>
-          <div>
+          <div class="edit-action">
             <q-btn class="q-ml-lg justify-end"
                    icon="isax:edit"
                    size="sm"
                    color="white"
                    text-color="accent"
-                   unelevated />
+                   unelevated
+                   :to="{name: 'UserPanel.Profile'}" />
           </div>
         </div>
-        <div class="q-mt-lg status">
-          <div class="flex no-wrap q-mx-md status-detail">
-            دانش آموز &#9679; ریاضی دوازدهم
-            <div>۹۵۵</div>
-            <div class="yellow-star" />
-          </div>
-        </div>
+        <!--        <div class="q-mt-lg status">-->
+        <!--          <div class="flex no-wrap q-mx-md status-detail">-->
+        <!--            دانش آموز &#9679; ریاضی دوازدهم-->
+        <!--            <div>۹۵۵</div>-->
+        <!--            <div class="yellow-star" />-->
+        <!--          </div>-->
+        <!--        </div>-->
         <q-separator class="q-mt-md"
                      size="2px" />
-        <q-list class="q-mt-md">
-          <router-link :to="{name: 'UserPanel.MyPurchases'}"
-                       class="flex">
-            <q-item v-ripple
-                    clickable>
-              <q-item-section class="menu-item-custom">
-                <div class="play-btn" />
-                <div class="menu-item-title q-ml-sm">محصولات من</div>
-              </q-item-section>
-            </q-item>
-          </router-link>
-          <router-link :to="{name: 'UserPanel.MyOrders'}"
-                       class="flex">
-            <q-item v-ripple
-                    clickable>
-              <q-item-section class="menu-item-custom">
-                <div class="note" />
-                <div class="menu-item-title q-ml-sm">سفارش های من</div>
-              </q-item-section>
-            </q-item>
-          </router-link>
+        <q-list class="menu-items q-mt-md">
           <q-item v-ripple
-                  clickable>
+                  clickable
+                  :to="{name: 'UserPanel.Profile'}"
+                  :active="isRouteSelected('UserPanel.Profile')">
             <q-item-section class="menu-item-custom">
-              <div class="empty-wallet" />
-              <div class="menu-item-title q-ml-sm">کیف پول</div>
-            </q-item-section>
-          </q-item>
-          <router-link class="flex"
-                       :to="{name: 'UserPanel.MyFavorites'}">
-            <q-item v-ripple
-                    clickable>
-              <q-item-section class="menu-item-custom">
-                <div class="bookmark" />
-                <div class="menu-item-title q-ml-sm">نشان شده ها</div>
-              </q-item-section>
-            </q-item>
-          </router-link>
-          <q-item v-ripple
-                  clickable>
-            <q-item-section class="menu-item-custom">
-              <div class="leightner" />
-              <div class="menu-item-title q-ml-sm">جعبه لایتنر</div>
+              <q-icon name="isax:user dashboard"
+                      size="22px" />
+              <div class="menu-item-title q-ml-sm">پروفایل</div>
             </q-item-section>
           </q-item>
           <q-item v-ripple
-                  clickable>
+                  clickable
+                  :to="{name: 'UserPanel.MyPurchases'}"
+                  :active="isRouteSelected('UserPanel.MyPurchases')">
             <q-item-section class="menu-item-custom">
-              <div class="channels" />
-              <div class="menu-item-title q-ml-sm">کانال‌های من</div>
+              <div class="play-btn" />
+              <div class="menu-item-title q-ml-sm">محصولات من</div>
             </q-item-section>
           </q-item>
           <q-item v-ripple
-                  clickable>
+                  clickable
+                  :to="{name: 'UserPanel.MyOrders'}"
+                  :active="isRouteSelected('UserPanel.MyOrders')">
             <q-item-section class="menu-item-custom">
-              <div class="messages" />
-              <div class="menu-item-title q-ml-sm">نظرات من</div>
+              <div class="note" />
+              <div class="menu-item-title q-ml-sm">سفارش های من</div>
             </q-item-section>
           </q-item>
-          <router-link class="flex"
-                       :to="{name: 'UserPanel.Ticket.Index'}">
-            <q-item v-ripple
-                    clickable>
-              <q-item-section class="menu-item-custom">
-                <div class="ticket" />
-                <div class="menu-item-title q-ml-sm">تیکت</div>
-              </q-item-section>
-            </q-item>
-          </router-link>
+          <!--          <q-item v-ripple-->
+          <!--                  clickable>-->
+          <!--            <q-item-section class="menu-item-custom">-->
+          <!--              <div class="empty-wallet" />-->
+          <!--              <div class="menu-item-title q-ml-sm">کیف پول</div>-->
+          <!--            </q-item-section>-->
+          <!--          </q-item>-->
+          <q-item v-ripple
+                  clickable
+                  :to="{name: 'UserPanel.MyFavorites'}"
+                  :active="isRouteSelected('UserPanel.MyFavorites')">
+            <q-item-section class="menu-item-custom">
+              <div class="bookmark" />
+              <div class="menu-item-title q-ml-sm">نشان شده ها</div>
+            </q-item-section>
+          </q-item>
+          <q-item v-ripple
+                  clickable
+                  :to="{name: 'UserPanel.Asset.Abrisham.Progress'}">
+            <q-item-section class="menu-item-custom">
+              <q-icon name="ph:compass"
+                      size="22px" />
+              <div class="menu-item-title q-ml-sm">داشبورد راه ابریشم</div>
+            </q-item-section>
+          </q-item>
+          <q-item v-ripple
+                  clickable
+                  :to="{name: 'UserPanel.Asset.AbrishamPro.Progress'}">
+            <q-item-section class="menu-item-custom">
+              <q-icon name="ph:compass"
+                      size="22px" />
+              <div class="menu-item-title q-ml-sm">داشبورد راه ابریشم پرو</div>
+            </q-item-section>
+          </q-item>
+          <q-item v-ripple
+                  clickable
+                  :to="{name: 'UserPanel.Asset.TripleTitleSet.Products', params: {eventName: 'abrisham2'}}">
+            <q-item-section class="menu-item-custom">
+              <q-icon name="ph:compass"
+                      size="22px" />
+              <div class="menu-item-title q-ml-sm">داشبورد راه ابریشم ۲</div>
+            </q-item-section>
+          </q-item>
+          <q-item v-ripple
+                  clickable
+                  :to="{name: 'UserPanel.Asset.TripleTitleSet.Products', params: {eventName: 'chatre-nejat'}}">
+            <q-item-section class="menu-item-custom">
+              <q-icon name="ph:umbrella"
+                      size="22px" />
+              <div class="menu-item-title q-ml-sm">داشبورد چترنجات</div>
+            </q-item-section>
+          </q-item>
+          <q-item v-ripple
+                  clickable
+                  :to="{name: 'UserPanel.Asset.TripleTitleSet.Products', params: {eventName: '110'}}">
+            <q-item-section class="menu-item-custom">
+              <q-icon name="ph:fire"
+                      size="22px" />
+              <div class="menu-item-title q-ml-sm">داشبورد 110</div>
+            </q-item-section>
+          </q-item>
+          <q-item v-ripple
+                  clickable
+                  :to="{name: 'UserPanel.Asset.TripleTitleSet.Products', params: {eventName: 'emtahan-nahaee'}}">
+            <q-item-section class="menu-item-custom">
+              <q-icon name="isax:bill"
+                      size="22px" />
+              <div class="menu-item-title q-ml-sm">داشبورد امتحان نهایی</div>
+            </q-item-section>
+          </q-item>
+          <q-item v-ripple
+                  clickable
+                  @click="runEvent('showLiveClassesLink')">
+            <q-item-section class="menu-item-custom">
+              <q-icon name="isax:document-1 dashboard"
+                      size="22px" />
+              <div class="menu-item-title q-ml-sm">
+                همایش های آنلاین
+              </div>
+            </q-item-section>
+          </q-item>
+          <!--          <q-item v-ripple-->
+          <!--                  clickable>-->
+          <!--            <q-item-section class="menu-item-custom">-->
+          <!--              <div class="leightner" />-->
+          <!--              <div class="menu-item-title q-ml-sm">جعبه لایتنر</div>-->
+          <!--            </q-item-section>-->
+          <!--          </q-item>-->
+          <!--          <q-item v-ripple-->
+          <!--                  clickable>-->
+          <!--            <q-item-section class="menu-item-custom">-->
+          <!--              <div class="channels" />-->
+          <!--              <div class="menu-item-title q-ml-sm">کانال‌های من</div>-->
+          <!--            </q-item-section>-->
+          <!--          </q-item>-->
+          <!--          <q-item v-ripple-->
+          <!--                  clickable>-->
+          <!--            <q-item-section class="menu-item-custom">-->
+          <!--              <div class="messages" />-->
+          <!--              <div class="menu-item-title q-ml-sm">نظرات من</div>-->
+          <!--            </q-item-section>-->
+          <!--          </q-item>-->
+          <q-item v-ripple
+                  clickable
+                  :to="{name: 'UserPanel.Ticket.Index'}"
+                  :active="isRouteSelected('UserPanel.Ticket.Index')">
+            <q-item-section class="menu-item-custom">
+              <div class="ticket" />
+              <div class="menu-item-title q-ml-sm">تیکت</div>
+            </q-item-section>
+          </q-item>
           <q-item v-ripple
                   clickable
                   @click="logout">
@@ -148,15 +224,19 @@
 </template>
 
 <script>
-import API_ADDRESS from 'src/api/Addresses.js'
+import { User } from 'src/models/User.js'
+import LazyImg from 'src/components/lazyImg.vue'
+import { APIGateway } from 'src/api/APIGateway.js'
 import { mixinWidget, mixinAuthData } from 'src/mixin/Mixins.js'
 
 export default {
   name: 'ProfileMenu',
+  components: { LazyImg },
   mixins: [mixinWidget, mixinAuthData],
   data() {
     return {
-      api: API_ADDRESS.user.base,
+      api: APIGateway.user.APIAdresses.base,
+      user: new User(),
       file: null,
       previewImg: null,
       controls: false
@@ -172,11 +252,22 @@ export default {
     }
   },
   created () {
-    this.api = API_ADDRESS.user.base + '/' + this.user.id
-    this.previewImg = this.user.photo
+    this.api = APIGateway.user.APIAdresses.base + '/' + this.user.id
   },
-  mounted () {},
+  mounted () {
+    this.loadAuthData()
+  },
   methods: {
+    loadAuthData () { // prevent Hydration node mismatch
+      this.user = this.$store.getters['Auth/user']
+      this.previewImg = this.user.photo
+    },
+    runEvent (eventName) {
+      this.$bus.emit(eventName)
+    },
+    isRouteSelected (itemName) {
+      return (this.$route.name === itemName)
+    },
     updatePhoto() {
       this.$refs.file.pickFiles()
     },
@@ -192,9 +283,13 @@ export default {
     confirmUpdate() {
       const fd = new FormData()
       fd.append('photo', this.file)
-      this.$axios.put(this.api, fd).then((d) => {
-        this.controls = false
-      })
+      fd.append('updateType', 'photo')
+      APIGateway.user.updateProfile(this.user.id, fd)
+        .then(() => {
+          this.$store.dispatch('Auth/updateUser')
+          this.controls = false
+        })
+        .catch(() => {})
     },
     logout() {
       this.$store.dispatch('Auth/logOut')
@@ -203,25 +298,59 @@ export default {
 }
 </script>
 
-<style scoped>
-a {
-  color: black;
+<style lang="scss" scoped>
+.q-list.menu-items {
+  :deep(.q-item) {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 22px;
+    cursor: pointer;
+    border-radius: 14px;
+    &.q-item--active {
+      &:hover {
+        .q-focus-helper {
+          background: currentColor;
+          opacity: 0.15;
+        }
+      }
+    }
+  }
 }
-.q-item {
-  width: 100%;
+</style>
+
+<style scoped lang="scss">
+.ProfileMenu {
+  .user-info {
+    display: flex;
+    flex-wrap: nowrap;
+    position: relative;
+    .user-photo {
+      width: 80px;
+      padding: 5px;
+    }
+    .namePhone {
+      width: calc( 100% - 80px );
+      .fullName {
+        width: 100%;
+      }
+    }
+    .edit-action {
+      position: absolute;
+      right: 0;
+      top: 0;
+    }
+  }
 }
 :deep(.q-btn .q-btn__content) {
   margin: 3px;
 }
 .controls {
   position: absolute;
-  left: 55px;
-  top: 75px;
-}
-.previewImg {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+  top: 65px;
 }
 .sticky-menu {
   position: sticky;
@@ -240,6 +369,11 @@ a {
 }
 .note {
   background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAGaSURBVHgB1VXdbYMwEHZI8p4RyARNFJB4JBM0naBlg46QTNBmgjYTtJ0gPCIhiEdgBN4R0O+LjOTQ8JNWPPSTjO3z3fnz+XwIMRBGbYu2bS+Kongpy9K8MBqNkul06gVBkNzs2HEcM8uyI8eGYfj6GjZz0c3yPJ9LKdNejskSDB/RaLyA02UYhlLXWQDj8fgE5hJ6Eux3dfZGnSXYHKH8BKOzDONZfXM4NbXpBic7kVAj49VqxaObOOIafUpWnKP5mtpMydIoiuYgb0KPdgnm66uMARdMD4hbwtipDfZkrzXG9IC1JQ2oi+6LtrqjSTXgzucj4MYrmTJ6Fh1gnLkpQ1nF2hAD4f85njQtWJblIvXeauJ9HMev4i+OeftII1+X4ZJEXzQ6Vq/NE7/EpG2R6dO23laEGh3jFfKpfogW4Bl7ONn7TY7xsnzE+OFaraiAjT9FH4Blidbr1nUgg7a01WX1PPbR7rtiq4O6LLPIIl+XX1Q39cdgpWKhkarvwoYfFiVVW346JlQZ3ILBXVt8K/DvgljvdKeD4htwX79yq2BfSgAAAABJRU5ErkJggg==');
+  margin-right: 10px;
+  width: 22px;
+  height: 22px;
+}
+.dashboard {
   margin-right: 10px;
   width: 22px;
   height: 22px;
@@ -290,8 +424,8 @@ a {
   font-size: 7px;
   position: absolute;
   border-radius: 50%;
-  top: 75px;
-  left: 10px;
+  top: 45px;
+  left: 0;
 }
 .fullName {
   width: 95px;
@@ -341,8 +475,5 @@ a {
   justify-content: center;
   display: flex;
   flex-direction: column;
-}
-.q-field--standard .q-field__control:before {
-  border-bottom: 0px;
 }
 </style>

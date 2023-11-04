@@ -1,6 +1,8 @@
 <template>
   <div class="upload-information-wrapper">
-    <div class="row">
+    <loading-content-in-step v-if="content.loading" />
+    <div v-else
+         class="row">
       <div class="col-6 upload-publish-col">
         <form-builder ref="publishForm"
                       v-model:value="inputs" />
@@ -8,14 +10,11 @@
       <div class="col-6 video-box-col">
         <div class="video-box">
           <div class="video-box-title" />
-          <video-player class="video"
-                        :source="'https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8'" />
-
-          <!--          <video-player :source="'https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8'" />-->
+          <video-player :source="content.getVideoSource()" />
         </div>
         <div class="link-box">
           <div class="link-title">لینک فیلم</div>
-          <div class="link-url">office.alaa.tv.18080/c/createset+1897</div>
+          <div class="link-url">{{content.stream.webm}}</div>
         </div>
       </div>
     </div>
@@ -26,10 +25,13 @@
 import { FormBuilder } from 'quasar-form-builder'
 import VideoPlayer from 'src//components/ContentVideoPlayer.vue'
 import { PlayerSourceList } from 'src/models/PlayerSource.js'
+import LoadingContentInStep
+  from 'components/Widgets/UploadCenter/components/UploadProgressDialog/LoadingContentInStep.vue'
 
 export default {
   name: 'UploadPublish',
   components: {
+    LoadingContentInStep,
     FormBuilder,
     VideoPlayer
   },
@@ -43,17 +45,17 @@ export default {
       inputs: [
         {
           type: 'optionGroupRadio',
-          responseKey: 'type',
-          name: 'type',
+          responseKey: 'is_free',
+          name: 'isFree',
           label: 'نوع محتوا',
           dense: 'false',
           options: [
             {
-              value: 'free',
+              value: 1,
               label: 'رایگان'
             },
             {
-              value: 'paid',
+              value: 0,
               label: 'پولی'
             }
           ],
@@ -108,7 +110,7 @@ export default {
     },
     formData() {
       return {
-        is_free: this.inputs[0].value,
+        isFree: this.inputs[0].value,
         enable: this.inputs[1].value === 'public' || this.inputs[1].value === 'timePlan' ? 1 : 0,
         ...(this.inputs[1].value === 'timePlan' && { validSinceDate: `${this.inputs[2].value + ' ' + this.inputs[3].value}` })
       }
@@ -128,17 +130,20 @@ export default {
       this.$emit('updateFormData', value)
     }
   },
+  mounted() {
+    this.$refs.publishForm.setInputValues(this.content, this.inputs)
+  },
   methods: {
     videoSource() {
       return new PlayerSourceList(this.content.file.video)
     },
     publish() {
       const values = this.$refs.publishForm.getValues()
-      const type = values.find(x => x.name === 'type').value
+      const type = values.find(x => x.name === 'isFree').value
       const status = values.find(x => x.name === 'status').value
       const formData = {
         id: this.content.id,
-        is_free: type,
+        isFree: type,
         enable: status === 'public' || status === 'timePlan' ? 1 : 0,
         ...(status === 'timePlan' && { validSinceDate: values.find(x => x.name === 'date').value + values.find(x => x.name === 'time').value })
       }

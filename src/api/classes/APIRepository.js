@@ -9,7 +9,7 @@ export default class APIRepository {
     this.url = urlAddress
     this._model = model
     this.APIAdresses = APIAdresses
-    this.FullAPIAdresses = APIAdresses === undefined || APIAdresses === null ? {} : this.getFullAPIAdress()
+    this.FullAPIAdresses = APIAdresses === undefined || APIAdresses === null ? {} : this.getFullAPIAddress()
   }
 
   /**
@@ -17,7 +17,7 @@ export default class APIRepository {
    * @returns An object with the same keys as the APIAdresses object, but with the values being the
    * baseURL + the APIAdresses values.
    */
-  getFullAPIAdress() {
+  getFullAPIAddress() {
     const urlAddress = {}
     Object.keys(this.APIAdresses).map(item => {
       if (typeof this.APIAdresses[item] === 'function') {
@@ -63,7 +63,7 @@ export default class APIRepository {
    * @param data - The data to be sent to the server.
    * @returns The defaultSendData is being returned.
    */
-  getNormalizedSendData (defaultData, data) {
+  getNormalizedSendData(defaultData, data) {
     // for (const key of Object.keys(defaultData)) {
     //   if (data[key] === null || data[key] === undefined) {
     //     delete defaultData[key]
@@ -150,7 +150,7 @@ export default class APIRepository {
       rejectCallback: (error) => {
         return error
       },
-      data: new this._model(entityData)
+      data: new this._model(entityData.data)
     })
   }
 

@@ -3,20 +3,27 @@ import { apiV2 } from 'src/boot/axios'
 import { TreeNode } from 'src/models/TreeNode.js'
 const APIAdresses = {
   base: '/forrest/tree',
+  getMultiType: (types) => {
+    let treeAddress = '/forrest/tree?'
+    types.forEach(element => {
+      treeAddress = treeAddress + `multi-type[]=${element}&`
+    })
+    return treeAddress
+  },
   getGradesList: '/forrest/tree?type=test',
-  getNodeById (nodeId) {
+  getNodeById(nodeId) {
     return '/forrest/tree/' + nodeId
   },
-  getNodeByType (nodeType) {
+  getNodeByType(nodeType) {
     return '/forrest/tree?type=' + nodeType
   },
-  getNodeByTitle (nodeType) {
+  getNodeByTitle(nodeType) {
     return '/forrest/tree?title=' + nodeType
   },
-  editNode (id) {
+  editNode(id) {
     return '/forrest/tree/' + id
   },
-  getLessonList (lessonId) {
+  getLessonList(lessonId) {
     return '/forrest/tree/' + lessonId
   }
 }
@@ -51,13 +58,13 @@ export default class TreeAPI extends APIRepository {
     })
   }
 
-  getNodeBy(value, data) {
-    const methodName = 'getNodeBy' + value
+  createNode(data = {}) {
     return this.sendRequest({
-      apiMethod: 'get',
+      apiMethod: 'post',
       api: this.api,
-      request: this.APIAdresses[methodName](data.data.id),
-      cacheKey: this.CacheList[methodName](data.data.id),
+      request: this.APIAdresses.base,
+      cacheKey: this.CacheList.base,
+      data: data.data,
       ...(data?.cache && { cache: data.cache }),
       resolveCallback: (response) => {
         return new TreeNode(response.data.data)
@@ -80,13 +87,14 @@ export default class TreeAPI extends APIRepository {
     return this.getNodeBy('Title', data)
   }
 
-  editNode (nodeId, data) {
+  editNode(nodeId, data) {
     return this.sendRequest({
       apiMethod: 'put',
       api: this.api,
       request: this.APIAdresses.editNode(nodeId),
       cacheKey: this.CacheList.editNode(nodeId),
       ...(data?.cache && { cache: data.cache }),
+      data: data.data,
       resolveCallback: (response) => {
         return new TreeNode(response.data.data)
       },
@@ -96,7 +104,7 @@ export default class TreeAPI extends APIRepository {
     })
   }
 
-  getGradesList (data = {}) {
+  getGradesList(data = {}) {
     return this.sendRequest({
       apiMethod: 'get',
       api: this.api,
@@ -112,7 +120,7 @@ export default class TreeAPI extends APIRepository {
     })
   }
 
-  getLessonList (data = {}) {
+  getLessonList(data = {}) {
     return this.sendRequest({
       apiMethod: 'get',
       api: this.api,

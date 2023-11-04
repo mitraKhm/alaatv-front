@@ -1,38 +1,55 @@
 <template>
-  <div :class="customClass">
-    <q-resize-observer @resize="onresize" />
-    <q-img v-if="qImage && width && height"
+  <template v-if="qImage">
+    <q-img v-if="width && height"
            ref="LazyImage"
+           :class="customClass"
+           class="lazy-img"
            :alt="alt"
            :src="lazyImageSrc"
            :width="computedWidth+'px'"
            :height="computedHeight+'px'"
            :ratio="ratio"
            fit="contain"
-           class="full-width img"
-           position="0 0">
+           position="0 0"
+           @click="onClick">
       <slot />
     </q-img>
-    <img v-else-if="!qImage && width && height"
+    <q-img v-else
+           ref="LazyImage"
+           :class="customClass"
+           class="lazy-img"
+           :src="computedSrc"
+           :alt="alt"
+           @click="onClick">
+      <slot />
+    </q-img>
+  </template>
+  <template v-else>
+    <img v-if="width && height"
          ref="LazyImage"
+         v-intersection.once="onIntersection"
+         :class="customClass"
+         class="lazy-img"
          :alt="alt"
          :src="lazyImageSrc"
-         class="full-width img"
-         :style="{height: computedHeight+'px', width: computedWidth+'px'}">
-    <q-img v-else-if="qImage && (!width || !height)"
-           :src="computedSrc"
-           :alt="alt">
-      <slot />
-    </q-img>
-    <img v-else-if="!qImage && (!width || !height)"
+         :width="computedWidth"
+         :height="computedHeight"
+         :style="{height: computedHeightForStyle, width: computedWidthForStyle}"
+         @click="onClick">
+    <!--    :style="{height: computedHeightForStyle, width: computedWidthForStyle}"-->
+    <!--    :style="{height: computedHeightForStyle, width: computedWidthForStyle}"-->
+    <img v-else
+         ref="LazyImage"
+         v-intersection.once="onIntersection"
+         :class="customClass"
+         class="lazy-img"
          :src="computedSrc"
          :alt="alt"
-         class="full-width">
-  </div>
+         @click="onClick">
+  </template>
 </template>
 
 <script>
-import process from 'process'
 export default {
   name: 'lazyImg',
   props: {
@@ -53,30 +70,50 @@ export default {
       default: null
     },
     width: {
-      type: String,
+      type: [String, Number],
       default: null
     },
     height: {
-      type: String,
+      type: [String, Number],
       default: null
     }
   },
+  emits: ['click'],
   data () {
     return {
-      lazyImageSrc: '',
+      visible: false,
+      // png;base64 from -> https://png-pixel.com
+      lazyImageSrc: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAJCAQAAACRI2S5AAAAEklEQVR42mMsrWfACxhHFYABAIGaCJ524rGEAAAAAElFTkSuQmCC',
       computedWidth: 0,
       computedHeight: 0
     }
   },
   computed: {
     computedSrc () {
-      if (!process.env.APP_ENV !== 'production' && this.src) {
+      if (!this.visible) {
+        return this.lazyImageSrc
+      }
+      if (!this.$env?.APP_ENV !== 'production' && this.src) {
         return this.src.replace('https://stage-minio.alaatv.com', 'https://nodes.alaatv.com')
       }
       return this.src
     },
     customClass () {
       return this.class
+    },
+    computedWidthForStyle () {
+      if (this.visible || !this.computedWidth) {
+        return null
+      }
+
+      return this.computedWidth + 'px'
+    },
+    computedHeightForStyle () {
+      if (this.visible || !this.computedHeight) {
+        return null
+      }
+
+      return this.computedHeight + 'px'
     },
     normalizedSizeWithPx () {
       return {
@@ -91,11 +128,13 @@ export default {
           h: 0
         }
       }
-      const wContain = this.width.search('px') !== -1 ? 'px' : this.width.search('%') ? '%' : ''
-      const HContain = this.height.search('px') !== -1 ? 'px' : this.height.search('%') ? '%' : ''
+      const width = this.width.toString()
+      const height = this.height.toString()
+      const wContain = width.search('px') !== -1 ? 'px' : width.search('%') ? '%' : ''
+      const HContain = height.search('px') !== -1 ? 'px' : height.search('%') ? '%' : ''
       return {
-        w: this.width.replace(wContain, ''),
-        h: this.height.replace(HContain, '')
+        w: width.replace(wContain, ''),
+        h: height.replace(HContain, '')
       }
     },
     ratio () {
@@ -109,10 +148,27 @@ export default {
   },
   mounted() {
     this.updateLazyImageSrc()
+    window.addEventListener('resize', this.onresize)
   },
   methods: {
+    onClick () {
+      this.$emit('click')
+    },
     onresize () {
+      if (!this.visible) {
+        return
+      }
       this.updateLazyImageSrc()
+    },
+    onIntersection (entry) {
+      if (!entry.isIntersecting) {
+        return
+      }
+      this.visible = true
+      this.updateLazyImageSrc()
+    },
+    isBase64Image (imageData) {
+      return imageData.toString().indexOf('data:image/png;base64') === 0
     },
     updateLazyImageSrc () {
       this.computedWidth = Math.floor(this.getOffsetWidth())
@@ -121,7 +177,7 @@ export default {
         this.computedHeight = Math.floor((parseInt(this.normalizedSizeInNumber.h) * this.computedWidth) / parseInt(this.normalizedSizeInNumber.w))
       }
       this.lazyImageSrc = this.computedSrc
-      if (this.lazyImageSrc && !isNaN(this.computedWidth) && this.computedWidth > 0 && !isNaN(this.computedHeight) && this.computedHeight > 0) {
+      if (this.lazyImageSrc && !this.isBase64Image(this.lazyImageSrc) && !isNaN(this.computedWidth) && this.computedWidth > 0 && !isNaN(this.computedHeight) && this.computedHeight > 0) {
         this.lazyImageSrc += '?w=' + this.computedWidth + '&h=' + this.computedHeight
       }
 
@@ -161,8 +217,20 @@ export default {
 }
 </script>
 
-<style>
-.img{
+<style lang="scss" scoped>
+.resize-observer {
+  min-width: 100%;
+  max-width: 100%;
+}
+
+.lazy-img {
+  font-size: 0;
+  //min-width: 100%;
+  //max-width: 100%;
+  overflow: hidden;
   border-radius: inherit;
+  background: transparent;
+  display: block;
+  height: auto;
 }
 </style>

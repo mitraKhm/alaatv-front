@@ -1,66 +1,95 @@
 <template>
-  <q-card v-if="!userLogin"
-          class="login-card">
-    <div v-if="loadingList"
-         class="text-center login-loading">
-      <q-spinner-ball color="primary"
-                      size="5em" />
-    </div>
-    <div v-else>
-      <div class="header">
-        ثبت نام و ورود
+  <div class="login-card"
+       :class="{defaultLoginCard: defaultLayout}">
+    <div v-if="!userLogin">
+      <div v-if="loading"
+           class="text-center login-loading">
+        <q-spinner-ball color="primary"
+                        size="5em" />
       </div>
-      <div class="phone-number">
-        <div class="label">
-          شماره همراه
+      <div v-else>
+        <div v-if="defaultLayout"
+             class="header">
+          <q-btn v-if="domainSameWithAppDomain"
+                 flat
+                 rounded
+                 :to="{name: 'Public.Home'}">
+            <q-avatar size="42px">
+              <lazy-img src="https://nodes.alaatv.com/upload/alaa-logo.png"
+                        width="40"
+                        height="40"
+                        class="full-width" />
+            </q-avatar>
+          </q-btn>
+          ثبت نام و ورود
         </div>
-        <q-input ref="userName"
-                 v-model="username"
-                 bottom-slots
-                 hide-bottom-space
-                 autocomplete="off"
-                 onfocus="this.removeAttribute('readonly');"
-                 name="userName"
-                 placeholder=" - - - - - - - - - 09"
-                 @keydown.enter="getEnter('pass')" />
-      </div>
-      <div class="national-code">
-        <div class="label">
-          کد ملی
+        <div class="phone-number">
+          <div class="label" />
+          <q-input ref="userName"
+                   v-model="username"
+                   bottom-slots
+                   hide-bottom-space
+                   label="شماره همراه"
+                   autocomplete="off"
+                   pattern="[0-9]*"
+                   inputmode="numeric"
+                   onfocus="this.removeAttribute('readonly');"
+                   name="userName"
+                   placeholder=" - - - - - - - - - 09"
+                   @keydown.enter="getEnter('pass')" />
         </div>
-        <q-input ref="pass"
-                 v-model="password"
-                 name="pass"
-                 hide-bottom-space
-                 type="password"
-                 @keydown.enter="login" />
+        <div class="national-code">
+          <div class="label" />
+          <q-input ref="pass"
+                   v-model="password"
+                   name="pass"
+                   label="کد ملی"
+                   hide-bottom-space
+                   type="password"
+                   pattern="[0-9]*"
+                   inputmode="numeric"
+                   @keydown.enter="login" />
+        </div>
+        <q-btn class="full-width login-btn"
+               :class="{'bg-green-6': !defaultLayout}"
+               unelevated
+               color="primary"
+               label="ثبت نام / ورود"
+               @click="login" />
       </div>
-      <q-btn class="full-width login-btn"
-             unelevated
-             color="primary"
-             label="ثبت نام / ورود"
-             @click="login" />
     </div>
-  </q-card>
+  </div>
 </template>
 
 <script>
-import { mixinAuth } from 'src/mixin/Mixins'
+import { mixinAuth } from 'src/mixin/Mixins.js'
+import LazyImg from 'src/components/lazyImg.vue'
+
 export default {
   name: 'AuthLogin',
+  components: { LazyImg },
   mixins: [mixinAuth],
   props: {
     redirect: {
-      type: Object,
+      type: (Object, Boolean),
       default: null
+    },
+    defaultLayout: {
+      default: true,
+      type: Boolean
     }
   },
+  emits: ['onLoggedIn'],
   data: () => ({
     userLogin: false,
-    loadingList: false,
+    loading: true,
     username: null,
     password: null
   }),
+  mounted () {
+    this.loading = false
+    this.$store.dispatch('Auth/logOut', { redirectTo: false, clearRedirectTo: false })
+  },
   methods: {
     getToken () {
       return this.$store.getters['Auth/accessToken']
@@ -73,6 +102,10 @@ export default {
       if (this.redirect) {
         redirectTo = this.redirect
       }
+      if (this.redirect === false) {
+        this.$store.commit('Auth/updateRedirectTo', null)
+        return
+      }
       if (redirectTo === null || typeof redirectTo !== 'object') {
         redirectTo = { name: 'Public.Home' }
       }
@@ -80,7 +113,7 @@ export default {
       this.$store.commit('Auth/updateRedirectTo', null)
     },
     handleErr (err) {
-      this.loadingList = false
+      this.loading = false
       const messages = []
       for (const key in err.data.errors) {
         err.data.errors[key].forEach(message => {
@@ -102,22 +135,26 @@ export default {
       }
     },
     login () {
-      this.loadingList = true
+      this.loading = true
       this.$store.dispatch('Auth/login', {
         mobile: this.username,
         password: this.password
       })
         .then(() => {
-          this.loadingList = false
-          this.$axios.defaults.headers.common.Authorization = 'Bearer ' + this.$store.getters['Auth/accessToken']
-          this.getUserData()
-            .then(() => {
-              this.$store.commit('AppLayout/updateLoginDialog', false)
-              this.redirectTo()
-            })
+          this.loading = false
+          // this.$axios.defaults.headers.common.Authorization = 'Bearer ' + this.$store.getters['Auth/accessToken']
+          // this.getUserData()
+          //   .then(() => {
+          //     this.$store.commit('AppLayout/updateLoginDialog', false)
+          //     this.redirectTo()
+          //   })
+          this.$store.commit('AppLayout/updateLoginDialog', false)
+          this.$emit('onLoggedIn')
+          this.$bus.emit('onLoggedIn')
+          this.redirectTo()
         })
-        .catch(err => {
-          this.handleErr(err.response)
+        .catch(() => {
+          this.loading = false
         })
     }
   }
@@ -125,13 +162,19 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.login-card {
+.defaultLoginCard{
   width: 434px;
   height: 485px;
+}
+.login-card {
+  box-shadow: 2px -4px 10px rgba(255, 255, 255, 0.6), -2px 4px 10px rgba(112, 108, 162, 0.05);
+  background: #fff;
   margin: auto;
-  box-shadow: 0 3px 10px rgba(55, 68, 87, 0.04);
   border-radius: 20px;
   padding:60px 67px;
+  @media only screen and (max-width: 600px){
+    padding: 30px;
+  }
   .login-loading {
     height: 100%;
     display: flex;
@@ -145,7 +188,7 @@ export default {
     font-size: 24px;
     line-height: 37px;
     letter-spacing: -0.03em;
-    color: var(--alaa-TextSecondary);
+    color: #65677F;
   }
   .label{
     font-weight: 400;
@@ -174,41 +217,10 @@ export default {
   &:deep(.q-field--focused .q-field__control) {
     background-color: rgba(255,255,255,0) !important;
     appearance: none;
-    border: 1px solid #FFB74D;
-    box-shadow: 0 0 0 2px #FFEDD2;
-    border-radius: 8px;
-  }
-
-  &:deep(.q-field .q-field__control) {
-    height: 40px;
-    background: #F2F5F9;
-    border-radius: 8px;
-    padding-left: 0;
-  }
-
-  &:deep(.q-field__native) {
-    font-style: normal;
-    font-weight: 400;
-    font-size: 14px;
-    line-height: 22px;
-    color: #6D708B !important;
-  }
-  :deep(.q-field__native, .q-field__prefix, .q-field__suffix, .q-field__input){
-    padding: 8px 16px;
-    border-radius: 8px
-  }
-
-  :deep(.q-field__control){
-    &::after{
-      height: 0;
-    }
-    &::before{
-      border-bottom: none;
-    }
   }
 }
 @media only screen and (max-width: 1023px){
-  .login-card {
+  .default-login-card {
     width: 312px;
     height: 409px;
     border-radius: 16px;
@@ -225,6 +237,20 @@ export default {
       line-height: 22px;
       letter-spacing: -0.03em;
     }
+  }
+}
+
+@media only screen and (max-width: 600px){
+  .defaultLoginCard{
+    width: 300px;
+    height: 450px;
+  }
+}
+
+@media only screen and (max-width: 400px){
+  .defaultLoginCard{
+    width: 270px;
+    height: 450px;
   }
 }
 </style>

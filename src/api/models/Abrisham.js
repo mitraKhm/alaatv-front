@@ -1,35 +1,29 @@
 import { apiV2 } from 'src/boot/axios.js'
-import { PlanList } from 'src/models/Plan.js'
-import { ContentList } from 'src/models/Content.js'
-import { StudyPlanList } from 'src/models/StudyPlan.js'
 import APIRepository from '../classes/APIRepository.js'
-import { LiveDescriptionList } from 'src/models/LiveDescription.js'
-
+import { Content } from 'src/models/Content.js'
+import { AbrishamMajorList } from 'src/models/AbrishamMajor'
+import { StudyPlan } from 'src/models/StudyPlan'
+const APIAdresses = {
+  lesson: '/abrisham/lessons',
+  majors: '/abrisham/majors',
+  karvan: '/abrisham/whereIsKarvan',
+  counter: '/konkur1403Countdown',
+  systemReport: '/abrisham/systemReport',
+  myStudyPlan: '/abrisham/myStudyPlan',
+  getOptions: '/abrisham/selectPlan/create',
+  findStudyPlan: '/abrisham/findStudyPlan'
+}
 export default class AbrishamAPI extends APIRepository {
   constructor() {
-    super('abrisham', apiV2)
-    this.APIAdresses = {
-      lesson: '/abrisham/lessons',
-      majors: '/abrisham/majors',
-      saveComment: '/comment',
-      karvan: '/abrisham/whereIsKarvan',
-      consultingContent: 'set/1213/contents',
-      watchedVideo: '/watched',
-      unWatchedVideo: '/unwatched',
-      pinedNews: '/livedescription/getPined',
-      liveDescription: '/livedescription?created_at_since=2022-07-09&order_by[]=created_at&order_type[]=desc',
-      userLastState: (id) => '/product/' + id + '/toWatch',
-      sets: (id) => '/product/' + id + '/sets',
-      observedLiveDescription: (id) => '/livedescription' + id + '/seen',
-      contents: (id) => '/set/' + id + '/contents',
-      studyPlan: (id) => '/studyEvent/' + id + '/studyPlans',
-      plan: (id) => '/studyPlan/' + id + '/plans',
-      updateComment: (id) => '/comment/' + id,
-      favored: (id) => '/c/' + id + '/favored',
-      unFavored: (id) => '/c/' + id + '/unfavored',
-      timePoint: (id, status) => '/c/timepoint/' + id + '/' + status
+    super('abrisham', apiV2, '', '', APIAdresses)
 
+    this.CacheList = {
+      counter: this.name + this.APIAdresses.counter,
+      systemReport: this.name + this.APIAdresses.systemReport,
+      getOptions: this.name + this.APIAdresses.getOptions,
+      findStudyPlan: this.name + this.APIAdresses.findStudyPlan
     }
+
     this.restUrl = (id) => this.url + '/' + id
   }
 
@@ -39,7 +33,7 @@ export default class AbrishamAPI extends APIRepository {
       api: this.api,
       request: this.APIAdresses.karvan,
       resolveCallback: (response) => {
-        return response
+        return new Content(response.data)
       },
       rejectCallback: (error) => {
         return error
@@ -48,13 +42,18 @@ export default class AbrishamAPI extends APIRepository {
     })
   }
 
-  getLessons() {
+  getLessons(isPro) {
+    const data = {}
+    if (isPro) {
+      data.isPro = 1
+    }
     return this.sendRequest({
       apiMethod: 'get',
       api: this.api,
       request: this.APIAdresses.lesson,
+      data,
       resolveCallback: (response) => {
-        return response
+        return new AbrishamMajorList(response.data.data).list
       },
       rejectCallback: (error) => {
         return error
@@ -62,251 +61,87 @@ export default class AbrishamAPI extends APIRepository {
     })
   }
 
-  requestToGetMajors() {
+  getCounter(cache = { TTL: 1000 }) {
     return this.sendRequest({
       apiMethod: 'get',
       api: this.api,
-      request: this.APIAdresses.majors,
-      resolveCallback: (response) => {
-        return response
-      },
-      rejectCallback: (error) => {
-        return error
-      }
-    })
-  }
-
-  getUserLastState(id) {
-    return this.sendRequest({
-      apiMethod: 'get',
-      api: this.api,
-      request: this.APIAdresses.userLastState(id),
-      resolveCallback: (response) => {
-        return response
-      },
-      rejectCallback: (error) => {
-        return error
-      }
-    })
-  }
-
-  requestToGetSets(id) {
-    return this.sendRequest({
-      apiMethod: 'get',
-      api: this.api,
-      request: this.APIAdresses.sets(id),
-      resolveCallback: (response) => {
-        return response
-      },
-      rejectCallback: (error) => {
-        return error
-      }
-    })
-  }
-
-  requestToGetContents(id) {
-    return this.sendRequest({
-      apiMethod: 'get',
-      api: this.api,
-      request: this.APIAdresses.contents(id),
-      resolveCallback: (response) => {
-        return new ContentList(response.data.data)
-      },
-      rejectCallback: () => {
-        return new ContentList()
-      }
-    })
-  }
-
-  getStudyEvents(id) {
-    return this.sendRequest({
-      apiMethod: 'get',
-      api: this.api,
-      request: this.APIAdresses.studyPlan(id),
-      resolveCallback: (response) => {
-        return new StudyPlanList(response.data.data)
-      },
-      rejectCallback: () => {
-        return new StudyPlanList()
-      }
-    })
-  }
-
-  getPlan(id) {
-    return this.sendRequest({
-      apiMethod: 'get',
-      api: this.api,
-      request: this.APIAdresses.plan(id),
-      resolveCallback: (response) => {
-        return new PlanList(response.data.data)
-      },
-      rejectCallback: () => {
-        return new PlanList()
-      }
-    })
-  }
-
-  getConsultingContentList() {
-    return this.sendRequest({
-      apiMethod: 'get',
-      api: this.api,
-      request: this.APIAdresses.consultingContent,
-      resolveCallback: (response) => {
-        return new ContentList(response.data.data)
-      },
-      rejectCallback: () => {
-        return new ContentList()
-      }
-    })
-  }
-
-  getNewsList(data) {
-    return this.sendRequest({
-      apiMethod: 'get',
-      api: this.api,
-      request: this.APIAdresses.liveDescription,
+      request: this.APIAdresses.counter,
+      cacheKey: this.CacheList.counter,
+      ...(cache && { cache }),
       resolveCallback: (response) => {
         return {
-          data: new LiveDescriptionList(response.data.data),
-          meta: response.data.meta
+          now: response.data.data?.now,
+          tillFirstTurn: response.data.data?.tillFirstTurn,
+          tillSecondTurn: response.data.data?.tillSecondTurn
         }
       },
-      rejectCallback: (er) => {
-        return er
-      },
-      data
-    })
-  }
-
-  saveComment(data) {
-    return this.sendRequest({
-      apiMethod: 'post',
-      api: this.api,
-      request: this.APIAdresses.saveComment,
-      resolveCallback: (response) => {
-        return response
-      },
       rejectCallback: (error) => {
         return error
-      },
-      data
-    })
-  }
-
-  updateComment(id, data) {
-    return this.sendRequest({
-      apiMethod: 'post',
-      api: this.api,
-      request: this.APIAdresses.updateComment(id),
-      resolveCallback: (response) => {
-        return response
-      },
-      rejectCallback: (error) => {
-        return error
-      },
-      data
-    })
-  }
-
-  setVideoWatched(data) {
-    return this.sendRequest({
-      apiMethod: 'post',
-      api: this.api,
-      request: this.APIAdresses.watchedVideo,
-      resolveCallback: (response) => {
-        return response
-      },
-      rejectCallback: (error) => {
-        return error
-      },
-      data
-    })
-  }
-
-  setVideoUnWatched(data) {
-    return this.sendRequest({
-      apiMethod: 'post',
-      api: this.api,
-      request: this.APIAdresses.unWatchedVideo,
-      resolveCallback: (response) => {
-        return response
-      },
-      rejectCallback: (error) => {
-        return error
-      },
-      data
-    })
-  }
-
-  setVideoFavored(id, data) {
-    return this.sendRequest({
-      apiMethod: 'post',
-      api: this.api,
-      request: this.APIAdresses.favored(id),
-      resolveCallback: (response) => {
-        return response
-      },
-      rejectCallback: (error) => {
-        return error
-      },
-      data
-    })
-  }
-
-  setVideoUnFavored(id, data) {
-    return this.sendRequest({
-      apiMethod: 'post',
-      api: this.api,
-      request: this.APIAdresses.unFavored(id),
-      resolveCallback: (response) => {
-        return response
-      },
-      rejectCallback: (error) => {
-        return error
-      },
-      data
-    })
-  }
-
-  bookmarkPostIsFavored(id, data) {
-    return this.sendRequest({
-      apiMethod: 'post',
-      api: this.api,
-      request: this.APIAdresses.unFavored(id),
-      resolveCallback: (response) => {
-        return response
-      },
-      rejectCallback: (error) => {
-        return error
-      },
-      data
-    })
-  }
-
-  getPinedNews() {
-    return this.sendRequest({
-      apiMethod: 'get',
-      api: this.api,
-      request: this.APIAdresses.pinedNews,
-      resolveCallback: (response) => {
-        return {
-          data: new LiveDescriptionList(response.data.data),
-          meta: response.data.meta
-        }
-      },
-      rejectCallback: (er) => {
-        return er
       }
     })
   }
 
-  getNewsHasBeenSeen(id) {
+  getReports(cache = { TTL: 1000 }) {
     return this.sendRequest({
       apiMethod: 'get',
       api: this.api,
-      request: this.APIAdresses.observedLiveDescription(id),
+      request: this.APIAdresses.systemReport,
+      cacheKey: this.CacheList.systemReport,
+      ...(cache && { cache }),
       resolveCallback: (response) => {
-        return response
+        return response.data.data // List of reviews(reports)
+      },
+      rejectCallback: (error) => {
+        return error
+      }
+    })
+  }
+
+  getOptions(cache = { TTL: 1000 }) {
+    return this.sendRequest({
+      apiMethod: 'get',
+      api: this.api,
+      request: this.APIAdresses.getOptions,
+      cacheKey: this.CacheList.getOptions,
+      ...(cache && { cache }),
+      resolveCallback: (response) => {
+        return {
+          grades: response.data?.data?.grades, // list of grades [{id,title}]
+          majors: response.data?.data?.majors, // list of majors [{id,title}]
+          studyPlans: response.data?.data?.studyPlans // List of studyPlans [{id,title}]
+        }
+      },
+      rejectCallback: (error) => {
+        return error
+      }
+    })
+  }
+
+  submitStudyPlan(data) {
+    return this.sendRequest({
+      apiMethod: 'post',
+      api: this.api,
+      request: this.APIAdresses.myStudyPlan,
+      resolveCallback: (response) => {
+        return response.data?.data // string message
+      },
+      rejectCallback: (error) => {
+        return error
+      },
+      data
+    })
+  }
+
+  findMyStudyPlan(data = {}, cache) {
+    return this.sendRequest({
+      apiMethod: 'get',
+      api: this.api,
+      request: this.APIAdresses.findStudyPlan,
+      cacheKey: this.CacheList.findStudyPlan,
+      ...(cache && { cache }),
+      data,
+      resolveCallback: (response) => {
+        return new StudyPlan(response.data.data)
       },
       rejectCallback: (error) => {
         return error

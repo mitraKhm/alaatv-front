@@ -1,10 +1,12 @@
+import Price from 'src/models/Price.js'
+import { Coupon } from 'src/models/Coupon.js'
+import { Product } from 'src/models/Product.js'
 import { Model, Collection } from 'js-abstract-model'
-import Price from './Price'
-import { Product } from 'src/models/Product'
-import { Coupon } from './Coupon'
-import { CartItemList } from './CartItem'
+import { OrderProduct } from 'src/models/OrderProduct.js'
+import { CartItem, CartItemList } from 'src/models/CartItem.js'
+
 class Cart extends Model {
-  constructor (data) {
+  constructor(data) {
     super(data, [
       {
         key: 'couponInfo',
@@ -20,6 +22,7 @@ class Cart extends Model {
       },
       { key: 'pay_by_wallet' },
       { key: 'coupon' },
+      { key: 'referralCode' },
       {
         key: 'order_has_donate',
         default: false
@@ -29,39 +32,85 @@ class Cart extends Model {
     ])
   }
 
-  isExistInCart (productId) {
+  getOrderId() {
+    return this.items.getOrderId()
+  }
+
+  isExistInCart(productId) {
     return this.items.hasProduct(productId)
   }
 
-  addToCart (data) {
-    const isSelectableProduct = !!data.products
-
-    if (isSelectableProduct) {
-      const grand = data.product
-      const cartItemThatHasGrand = this.items.getCartItemByGrand(grand.id)
-      cartItemThatHasGrand.addOrderProducts(data.products.map(product => new Product({ id: product })))
-    } else {
-      const product = data.product
+  addToCart(data) {
+    const isSelectableProduct = data.products && data.products.length > 0
+    const isConfigurableProduct = data.attribute && data.attribute.length > 0
+    const isSimpleProduct = !isSelectableProduct && !isConfigurableProduct
+    const addSimpleProduct = (data) => {
+      const product = new Product({ id: data.product_id })
       if (this.items.hasProduct(product.id)) {
         return
       }
-      this.items.addOrderProducts([new Product(product)])
+      const getItemWithNullGrandIndex = () => this.items.list.findIndex(item => item.grand.id === null)
+
+      let itemWithNullGrandIndex = getItemWithNullGrandIndex()
+      if (itemWithNullGrandIndex === -1) {
+        this.items.add(new CartItem())
+        itemWithNullGrandIndex = getItemWithNullGrandIndex()
+      }
+      this.items.list[itemWithNullGrandIndex].order_product.add(new OrderProduct({
+        product,
+        id: product.id,
+        order_id: product.id
+      }))
+    }
+    const addSelectableProduct = (data) => {
+      const grandProduct = new Product({ id: data.product_id })
+      const products = data.products
+      this.items.addProductsByGrand(grandProduct.id, products)
+    }
+    const addConfigurableProduct = (data) => {
+      this.items.addConfigurableProduct(data.product_id, data.attribute)
     }
 
-    this.changeCartItems()
+    if (isSimpleProduct) {
+      addSimpleProduct(data)
+    } else if (isSelectableProduct) {
+      addSelectableProduct(data)
+    } else if (isConfigurableProduct) {
+      addConfigurableProduct(data)
+    }
+
+    // if (isSelectableProduct) {
+    //   const grand = data.product
+    //   const cartItemThatHasGrand = this.items.getCartItemByGrand(grand.id)
+    //   cartItemThatHasGrand.addOrderProducts(data.products.map(product => new Product({ id: product })))
+    // } else {
+    //   const product = new Product({ id: data.product_id })
+    //   if (this.items.hasProduct(product.id)) {
+    //     return
+    //   }
+    //   this.items.add(new CartItem({
+    //     grand: product
+    //   }))
+    // }
+
+    // this.changeCartItems()
   }
 
-  removeItem (cartId) {
-    this.items.list = this.items.list.filter(item => item.grand.id !== cartId)
-    this.changeCartItems()
+  removeProduct(productId) {
+    this.items.removeProduct(productId)
   }
 
-  removeAllItems () {
+  removeItem(cartItemId) {
+    this.items.list = this.items.list.filter(item => item.grand.id !== cartItemId)
+    // this.changeCartItems()
+  }
+
+  removeAllItems() {
     this.items.list = []
     this.changeCartItems()
   }
 
-  calculateTotalFinalPrice () {
+  calculateTotalFinalPrice() {
     let finalPrice = 0
     this.items.list.forEach(item => {
       finalPrice += item.grand.price.final
@@ -69,7 +118,7 @@ class Cart extends Model {
     this.price.final = finalPrice
   }
 
-  calculateTotalBasePrice () {
+  calculateTotalBasePrice() {
     let basePrice = 0
     this.items.list.forEach(item => {
       basePrice += item.grand.price.base
@@ -77,7 +126,7 @@ class Cart extends Model {
     this.price.base = basePrice
   }
 
-  calculateTotalDiscount () {
+  calculateTotalDiscount() {
     let totalDiscount = 0
     this.items.list.forEach(item => {
       totalDiscount += item.grand.price.discount
@@ -85,18 +134,18 @@ class Cart extends Model {
     this.price.discount = totalDiscount
   }
 
-  isEmpty () {
+  isEmpty() {
     return !this.items.list.length
   }
 
-  changeCartItems () {
+  changeCartItems() {
     this.calculateTotalFinalPrice()
     this.calculateTotalDiscount()
     this.calculateTotalBasePrice()
   }
 }
 class CartList extends Collection {
-  model () {
+  model() {
     return Cart
   }
 }

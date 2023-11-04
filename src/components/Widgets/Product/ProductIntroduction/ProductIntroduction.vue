@@ -1,42 +1,52 @@
 <template>
-  <div v-if="product.intro"
-       class="intro-video col-md-6 col-12"
-       :class="options.className"
-       :style="options.style">
-    <video-player :poster="product.intro.photo"
-                  :sources="videoSource()" />
-    <div v-if="options.download_date"
-         class="q-mt-md q-ml-md">
-      <q-icon name="info"
-              color="primary"
-              size="25px"
-              class="q-pr-sm" />
-      <span>
-        زمان دریافت فایل های این محصول: {{ product.attributes.info.download_date[0] }}
-      </span>
-    </div>
-    <div v-if="product.attributes.info.duration.length > 0 && options.duration"
-         class="q-mt-md q-ml-md">
-      <q-icon name="timer"
-              color="primary"
-              size="25px"
-              class="q-pr-sm" />
-      <span>
-        مدت زمان: {{ product.attributes.info.duration[0] }}
-      </span>
-    </div>
-  </div>
+  <q-card v-if="product.intro"
+          class="intro-video custom-card"
+          :class="options.className"
+          :style="options.style">
+    <template v-if="!product.loading">
+      <video-player :poster="product.intro.photo"
+                    :source="videoSource()" />
+      <div v-if="options.download_date && getDownloadDate()"
+           class="q-mt-md q-ml-md">
+        <q-icon name="info"
+                color="primary"
+                size="25px"
+                class="q-pr-sm" />
+        <span>
+          زمان دریافت فایل های این محصول:
+          {{ getDownloadDate() }}
+        </span>
+      </div>
+      <div v-if="getDuration() && options.duration"
+           class="q-mt-md q-ml-md">
+        <q-icon name="timer"
+                color="primary"
+                size="25px"
+                class="q-pr-sm" />
+        <span>
+          مدت زمان:
+          {{ getDuration() }}
+        </span>
+      </div>
+    </template>
+    <q-skeleton v-else
+                height="250px"
+                square />
+  </q-card>
 </template>
 
 <script>
 import { Product } from 'src/models/Product.js'
 import { APIGateway } from 'src/api/APIGateway.js'
-import VideoPlayer from 'components/VideoPlayer.vue'
+import VideoPlayer from 'src/components/VideoPlayer.vue'
 import { PlayerSourceList } from 'src/models/PlayerSource.js'
+import { mixinPrefetchServerData } from 'src/mixin/Mixins.js'
+import { AEE } from 'assets/js/AEE/AnalyticsEnhancedEcommerce.js'
 
 export default {
   name: 'ProductIntroduction',
   components: { VideoPlayer },
+  mixins: [mixinPrefetchServerData],
   props: {
     options: {
       type: Object,
@@ -45,9 +55,23 @@ export default {
       }
     }
   },
-  data() {
+  data () {
     return {
       product: new Product()
+    }
+  },
+  computed: {
+    productId () {
+      if (typeof this.options.productId !== 'undefined' && this.options.productId !== null) {
+        return this.options.productId
+      }
+      if (this.options.urlParam && this.$route.params[this.options.urlParam]) {
+        return this.$route.params[this.options.urlParam]
+      }
+      if (this.$route.params.id) {
+        return this.$route.params.id
+      }
+      return this.product.id
     }
   },
   watch: {
@@ -58,29 +82,58 @@ export default {
       deep: true
     }
   },
-  created() {
-    this.getProduct()
-  },
   methods: {
+    getDownloadDate() {
+      if (this.product.attributes.download_date) {
+        return this.product.attributes.download_date[0]
+      }
+      return null
+    },
+    getDuration() {
+      if (this.product.attributes.duration) {
+        return this.product.attributes.duration[0]
+      }
+      return null
+    },
+    prefetchServerDataPromise () {
+      this.product.loading = true
+      return this.getProduct()
+    },
+    prefetchServerDataPromiseThen (data) {
+      this.product = new Product(data)
+      if (window) {
+        this.updateEECEventDetail()
+      }
+      this.product.loading = false
+    },
+    prefetchServerDataPromiseCatch () {
+      this.product.loading = false
+    },
+
+    updateEECEventDetail() {
+      AEE.productDetailViews('product.show', this.product.eec.getData(), {
+        TTl: 1000,
+        key: this.product.id
+      })
+    },
     videoSource() {
-      return new PlayerSourceList([{ link: this.product.intro.video }])
+      return new PlayerSourceList([{
+        default: true,
+        res: 1024,
+        type: 'video/mp4',
+        src: this.product.intro.video,
+        label: 'کیفیت عالی'
+      }])
     },
     getProduct() {
-      this.product.loading = true
-      APIGateway.product.show({ data: { id: this.options.productId }, cache: { TTL: 10000 } })
-        .then(product => {
-          this.product = new Product(product)
-          this.product.loading = false
-          this.setInformation()
-        })
-        .catch(() => {
-          this.product.loading = false
-        })
+      return APIGateway.product.show(this.productId)
     }
   }
 }
 </script>
 
 <style scoped>
-
+.intro-video {
+  overflow: hidden;
+}
 </style>

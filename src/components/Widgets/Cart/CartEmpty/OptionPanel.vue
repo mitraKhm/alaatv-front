@@ -4,9 +4,9 @@
       <div class="option-panel-container">
         <div class="row">
           <div class="col-md-12">
-            <q-input v-model="localOptions.text"
+            <q-input v-model="localOptions.photo"
                      left-label
-                     label="text" />
+                     label="photo" />
           </div>
           <div class="col-md-6">
             <q-input v-model="localOptions.link.text"
@@ -26,9 +26,8 @@
 
 <script>
 import { defineComponent } from 'vue'
-import { mixinOptionPanel, OptionPanelTabs } from 'quasar-ui-q-page-builder'
-// import mixinOptionPanel from 'quasar-ui-q-page-builder/src/mixin/OptionPanel.js'
-// import OptionPanelTabs from 'quasar-ui-q-page-builder/src/components/OptionPanelComponents/OptionPanelTabs.vue'
+import { mixinOptionPanel } from 'quasar-ui-q-page-builder'
+import OptionPanelTabs from 'quasar-ui-q-page-builder/src/components/OptionPanelComponents/OptionPanelTabs.vue'
 
 export default defineComponent({
   name: 'OptionPanel',
@@ -42,6 +41,7 @@ export default defineComponent({
       }
     }
   },
+  emits: ['update:options'],
   data() {
     return {
       defaultOptions: {
@@ -49,7 +49,12 @@ export default defineComponent({
         height: 'auto',
         boxed: false,
         boxedWidth: 1200,
-        style: {}
+        style: {},
+        photo: '',
+        link: {
+          text: '',
+          url: ''
+        }
       }
     }
   },

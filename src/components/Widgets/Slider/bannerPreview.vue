@@ -9,14 +9,13 @@
                label="height" />
     </div>
     <div class="col-7">
-      <q-input v-model="image.src"
-               label="src" />
+      <image-upload-inputs v-model:value="image.src" />
     </div>
     <div class="col-12">
-      <q-img v-if="size"
-             :src="banner.features[size].src" />
-      <q-img v-else
-             :src="banner.photo.src" />
+      <lazy-img v-if="size"
+                :src="banner.features[size].src" />
+      <lazy-img v-else
+                :src="banner.photo.src" />
     </div>
     <q-inner-loading :showing="visible"
                      label="Please wait..."
@@ -28,10 +27,14 @@
 <script>
 import LazyImg from 'components/lazyImg.vue'
 import { Banner } from 'src/models/Banner.js'
+import imageUploadInputs from 'components/Utils/ImageUploadInput.vue'
 
 export default {
   name: 'bannerPreview',
-  components: [LazyImg],
+  components: {
+    LazyImg,
+    imageUploadInputs
+  },
   props: {
     banner: {
       type: Banner,
@@ -58,11 +61,7 @@ export default {
       this.img.width = width
     },
     'image.src'(src) {
-      this.$emit('update:src', {
-        src,
-        size: this.size
-      })
-      this.updateImage()
+      this.updateImage(src)
     }
   },
   created() {
@@ -75,18 +74,20 @@ export default {
       } else {
         this.image.src = this.banner.photo.src
       }
-      this.updateImage()
     },
-    updateImage() {
+    updateImage (src) {
       this.visible = true
       this.img.src = this.image.src
-      this.image.width = this.img.width
-      this.image.height = this.img.height
       this.img.onload = () => {
-        this.img.src = this.image.src
         this.image.width = this.img.width
         this.image.height = this.img.height
         this.visible = false
+        this.$emit('update:src', {
+          src,
+          size: this.size,
+          width: this.image.width,
+          height: this.image.height
+        })
       }
       this.img.onerror = () => {
         this.visible = false

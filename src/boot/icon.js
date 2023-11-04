@@ -7,16 +7,31 @@ export default boot(({ app, store, router }) => {
       return {
         cls: 'isax isax-' + name
       }
-    } else if (iconName.startsWith('isax-svg:') === true) {
-      const name = iconName.substring(9)
+    }
+    if (iconName.startsWith('ph:') === true) {
+      const name = iconName.substring(3)
       return {
-        // iconName: 'img:/assets/icons/Iconsax/svg/linear/3d-cube-scan.svg',
-        icon: 'img:/iconsax-svg/svg/linear/' + name + '.svg'
-        // cls: 'img:/iconsax-svg/svg/linear/3d-cube-scan.svg',
-        // img: true
-        // src: '/assets/icons/Iconsax/svg/linear/3d-cube-scan.svg'
-        // content: '<img src="img:/iconsax-svg/svg/linear/3d-cube-scan.svg" />'
+        cls: 'ph ph-' + name
       }
     }
+
+    // if (iconName.startsWith('fa:') === true) {
+    //   const name = iconName.substring(3)
+    //   return {
+    //     cls: 'fa fa-' + name
+    //   }
+    // }
+
+    // else if (iconName.startsWith('isax-svg:') === true) {
+    //   const name = iconName.substring(9)
+    //   return {
+    //     // iconName: 'img:/assets/icons/Iconsax/svg/linear/3d-cube-scan.svg',
+    //     icon: 'img:/iconsax-svg/svg/linear/' + name + '.svg'
+    //     // cls: 'img:/iconsax-svg/svg/linear/3d-cube-scan.svg',
+    //     // img: true
+    //     // src: '/assets/icons/Iconsax/svg/linear/3d-cube-scan.svg'
+    //     // content: '<img src="img:/iconsax-svg/svg/linear/3d-cube-scan.svg" />'
+    //   }
+    // }
   }
 })

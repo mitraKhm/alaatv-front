@@ -10,7 +10,7 @@
         <div v-for="content in contents.list"
              :key="content.id">
           <content-item class="q-mr-md"
-                        :options="content" />
+                        :options="{content,contentLinkTarget: '_blank'}" />
         </div>
       </div>
     </div>
@@ -19,25 +19,16 @@
       <p class="section-title">نمونه جزوه ها</p>
       <div v-dragscroll
            class="contents-block">
-        <div v-for="pamphlet in pamphlets"
+        <div v-for="(pamphlet, index) in pamphlets"
              :key="pamphlet.id"
              class="pamphlet-image">
-          <!-- <FsLightbox
-            :toggler="toggler"
-            :sources="[
-              pamphlet.photo
-            ]"
-          /> -->
-          {{ pamphlet }}
-          <!-- <vue-picture-swipe :items="[
-            {
-              src: pamphlet.photo,
-              thumbnail: pamphlet.photo,
-              w:600,
-              h: 400,
-              title: pamphlet.title
-            }
-          ]"></vue-picture-swipe> -->
+          <q-img :ref="el => { thumbRef[index] = el }"
+                 :src="pamphlet.photo"
+                 :class="index === indexZoomed ? 'fixed-top q-mt-md q-mx-auto z-top' : void 0"
+                 :style="index === indexZoomed ? 'width: 650px; max-width: 100vw' : void 0"
+                 spinner-color="primary"
+                 spinner-size="82px"
+                 @click="zoomImage(index)" />
         </div>
       </div>
     </div>
@@ -45,23 +36,22 @@
 </template>
 
 <script>
-import { mixinWidget } from 'src/mixin/Mixins'
-import ContentItem from 'components/Widgets/ContentItem/ContentItem.vue'
 import { dragscroll } from 'vue-dragscroll'
-import { ContentList } from 'src/models/Content'
-import { APIGateway } from 'src/api/APIGateway'
-// import FsLightbox from 'fslightbox-vue'
+import { Product } from 'src/models/Product.js'
+import { mixinPrefetchServerData, mixinWidget } from 'src/mixin/Mixins.js'
+import { ContentList } from 'src/models/Content.js'
+import ContentItem from 'components/Widgets/ContentItem/ContentItem.vue'
+import { morph } from 'quasar'
 
 export default {
   name: 'productDemos',
   components: {
     ContentItem
-    // FsLightbox
   },
   directives: {
     dragscroll
   },
-  mixins: [mixinWidget],
+  mixins: [mixinWidget, mixinPrefetchServerData],
   props: {
     options: {
       type: Object,
@@ -73,25 +63,15 @@ export default {
   data() {
     return {
       contents: new ContentList(),
-      pamphlets: [],
-      toggler: false
+      toggler: false,
+      product: new Product(),
+      indexZoomed: null,
+      thumbRef: []
     }
   },
-  // watch: {
-  //   options: {
-  //     deep: true,
-  //     handler (newValue) {
-  //       this.contents = new ContentList(newValue.contents)
-  //       this.pamphlets = newValue.sample_photos
-  //     }
-  //   }
-  // },
-  mounted() {
-    this.loadProduct()
-  },
-  methods: {
-    getProductId() {
-      if (this.options.productId) {
+  computed: {
+    productId () {
+      if (typeof this.options.productId !== 'undefined' && this.options.productId !== null) {
         return this.options.productId
       }
       if (this.options.urlParam && this.$route.params[this.options.urlParam]) {
@@ -100,36 +80,86 @@ export default {
       if (this.$route.params.id) {
         return this.$route.params.id
       }
-      return null
+      return this.product.id
     },
-    loadProduct() {
-      const productId = this.getProductId()
-      if (!productId) {
-        return
+    pamphlets() {
+      if (this.product.sample_photos) {
+        return this.product.sample_photos
+      } else {
+        return []
+      }
+    }
+  },
+  methods: {
+    prefetchServerDataPromise () {
+      this.product.loading = true
+      return this.getProduct()
+    },
+    prefetchServerDataPromiseThen (data) {
+      this.product = data
+      this.getSampleContents()
+      this.product.loading = false
+    },
+    prefetchServerDataPromiseCatch () {
+      this.product.loading = false
+    },
+    getProduct() {
+      if (this.options.product) {
+        return new Promise(resolve => {
+          resolve(new Product(this.options.product))
+        })
+      } else if (!this.productId) {
+        return new Promise((resolve) => {
+          resolve()
+        })
+      }
+      this.product.loading = true
+      return this.$apiGateway.product.show(this.productId)
+    },
+    getSampleContents() {
+      if (this.options.contents) {
+        this.contents = this.options.contents
+      } else {
+        return this.$apiGateway.product.sampleContent(this.productId)
+          .then(contentList => {
+            this.contents = contentList
+          })
+          .catch(() => {
+
+          })
+      }
+    },
+    zoomImage (index) {
+      const indexZoomedState = this.indexZoomed
+      let cancel = void 0
+
+      this.indexZoomed = void 0
+
+      if (index !== void 0 && index !== indexZoomedState) {
+        cancel = morph({
+          from: this.thumbRef[index].$el,
+          onToggle: () => {
+            this.indexZoomed = index
+          },
+          duration: 500,
+          onEnd: end => {
+            if (end === 'from' && this.indexZoomed === index) {
+              this.indexZoomed = void 0
+            }
+          }
+        })
       }
 
-      this.getProduct(productId)
-      this.getSampleContents(productId)
-    },
-    getProduct(productId) {
-      APIGateway.product.show({
-        data: { id: productId },
-        cache: { TTL: 10000 }
-      })
-        .then(product => {
-          this.pamphlets = product.sample_photos
+      if (
+        indexZoomedState !== void 0 &&
+        (cancel === void 0 || cancel() === false)
+      ) {
+        morph({
+          from: this.thumbRef[indexZoomedState].$el,
+          waitFor: 100,
+          duration: 300
         })
-        .catch(() => {
-          this.product.loading = false
-        })
-    },
-    getSampleContents(productId) {
-      APIGateway.product.sampleContent({ productId })
-        .then(response => {
-          this.contents = new ContentList(response)
-          console.log(response)
-        })
-        .catch()
+      }
     }
   }
 }
@@ -142,6 +172,7 @@ export default {
 
   .demos-container {
     width: 1140px;
+    max-width: 100%;
   }
 
   .section-title {
@@ -165,9 +196,6 @@ export default {
     display: flex;
     overflow: auto;
     padding: 10px 0 0 0;
-    background: #ffffff;
-    margin-right: 20px;
-    border-radius: 20px;
 
     .pamphlet-image {
       min-width: 157px;

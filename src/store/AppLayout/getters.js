@@ -32,6 +32,9 @@ const getters = {
   layoutRightSideBarType: (state) => {
     return state.layoutRightSideBarType
   },
+  layoutFooterType: (state) => {
+    return state.layoutFooterType
+  },
   breadcrumbs: (state) => {
     return state.breadcrumbs
   },
@@ -43,6 +46,9 @@ const getters = {
   },
   headerSize: (state) => {
     return state.headerSize
+  },
+  showHamburgerBtn: (state) => {
+    return state.showHamburgerBtn
   },
   calculateContainerFullHeight: (state) => {
     let offset = 0

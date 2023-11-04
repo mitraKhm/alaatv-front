@@ -28,7 +28,7 @@
         <span class="q-mr-xs">
           {{ this.data.user.role }} : {{userIsCustomer ?'ماه' : getAdminName()}}
         </span>
-        <q-icon v-if="!isAdmin"
+        <q-icon v-if="!isInAdminPage"
                 size="16px"
                 name="isax:user"
                 class="user-icon" />
@@ -44,35 +44,31 @@
     </q-card-section>
     <q-card-section class="message-body">
       <div class="body ">
-        <div v-html="data.body" />
+        <div v-if="data.body">
+          <div v-html="data.body" />
+        </div>
         <div v-if="data.files.voice"
              dir="ltr">
           <div class="flex voice-player-section">
-            <q-btn v-if="!showVoicePlayerIsPlaying"
-                   size="30px"
-                   unelevated
-                   icon="isax:play"
-                   class="play-btn"
-                   @click="playRecordedVoice" />
-            <q-btn v-else
-                   size="30px"
-                   unelevated
-                   @click="pauseRecordedVoice">
-              <q-icon name="isax:pause" />
-            </q-btn>
-            <!--            <av-waveform ref="waveform"-->
-            <!--                         class="av-waveform"-->
-            <!--                         :audio-src="data.files.voice"-->
-            <!--                         :playtime-font-family="'IRANSans'"-->
-            <!--                         :audio-controls="false"-->
-            <!--                         :canv-width="900"-->
-            <!--                         :canv-height="64"-->
-            <!--            ></av-waveform>-->
+            <div class="audio-wrapper q-pt-lg">
+              <audio :src="data.files.voice"
+                     controls
+                     class="js-audio audio" />
+            </div>
           </div>
         </div>
         <q-img v-if="data.files.photo"
                :src="data.files.photo"
                class="q-my-lg" />
+        <div v-if="data.files.file"
+             class="q-pa-md">
+          <q-btn color="primary"
+                 :href="data.files.file"
+                 target="_blank"
+                 icon-right="isax:document-download">
+            <span class="q-pr-sm">دانلود فایل</span>
+          </q-btn>
+        </div>
       </div>
       <q-separator class="q-my-md" />
       <div class="flex">
@@ -111,7 +107,7 @@
   </q-card>
 </template>
 <script>
-import API_ADDRESS from 'src/api/Addresses.js'
+import { APIGateway } from 'src/api/APIGateway'
 import { mixinDateOptions, mixinTicket } from 'src/mixin/Mixins.js'
 // import AvWaveform from '@kerasus/vue-audio-visual/src/components/AvWaveform.js'
 
@@ -173,12 +169,10 @@ export default {
       this.showVoicePlayerIsPlaying = false
     },
     sendReport () {
-      this.$axios.post(API_ADDRESS.ticket.show.reportMessage(this.data.id), {
-        report_description: this.userReportDescription
-      })
-        .then((res) => {
+      APIGateway.ticket.show.reportMessage(this.data.id, { report_description: this.userReportDescription })
+        .then((message) => {
           this.$q.notify({
-            message: res.data.message,
+            message,
             type: 'positive'
           })
         })
@@ -187,7 +181,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .user-photo {
   border-radius: 50%;
 }

@@ -2,25 +2,31 @@
   <div class="transition-panel">
     <div class="page-title"> وضعیت درآمد </div>
     <div class="row no-gutters introduction-box">
-      <div class="col-xl-9 col-12">
-        <div class="row no-gutters card-container">
-          <div class="col-xl-4 col-lg-12">
+      <div class="col-xl-9 col-xs-12">
+        <div class="row q-col-gutter-md card-container">
+          <div class="col-md-4 col-xs-12 ">
             <div class="card-style income card-style-flex">
               <div class="title">
                 مجموع درآمد تا به الان
               </div>
-              <div class="price-box">
-                <div class="price">{{totalCommission.toLocaleString('fa')}}</div>
+              <q-inner-loading v-if="salesManLoading"
+                               :showing="salesManLoading" />
+              <div v-else
+                   class="price-box">
+                <div class="price">{{sales_man.total_commission.toLocaleString('fa')}}</div>
                 <span class="currency">تومان</span>
               </div>
             </div>
           </div>
-          <div class="col-xl-4 col-lg-12">
+          <div class="col-md-4 col-xs-12 ">
             <div class="card-style demand card-style-flex">
               <div class="title">
                 درآمد تسویه نشده
               </div>
-              <div class="price-progress">
+              <q-inner-loading v-if="salesManLoading"
+                               :showing="salesManLoading" />
+              <div v-else
+                   class="price-progress">
                 <div class="progress-box">
                   <div v-if="remainigAmountUntilSettlement.base > 0"
                        class="progress-title">
@@ -37,20 +43,23 @@
                                      dir="ltr" />
                 </div>
                 <div class="price-box">
-                  <div class="price">{{walletBalance.toLocaleString('fa')}}</div>
+                  <div class="price">{{sales_man.wallet_balance.toLocaleString('fa')}}</div>
                   <span class="currency">تومان</span>
                 </div>
               </div>
             </div>
           </div>
-          <div class="col-xl-4 col-lg-12">
+          <div class="col-md-4 col-xs-12 ">
             <div class="card-style demand card-style-flex">
               <div class="title">
                 در انتظار تسویه
               </div>
-              <div class="price-progress price-progress-incomeBeingSettle">
+              <q-inner-loading v-if="salesManLoading"
+                               :showing="salesManLoading" />
+              <div v-else
+                   class="price-progress price-progress-incomeBeingSettle">
                 <div class="price-box">
-                  <div class="price">{{incomeBeingSettle}}</div>
+                  <div class="price">{{awaitingSattlement.toman('base', false)}}</div>
                   <span class="currency">تومان</span>
                 </div>
               </div>
@@ -58,26 +67,45 @@
           </div>
         </div>
       </div>
-      <div class="col-xl-3 col-12">
+      <div class="col-xl-3 col-xs-12">
         <div class="left-side">
           <div class="clearing-title">
-            درخواست تسویه حساب
+            تاریخ های تسویه حساب
+          </div>
+          <div class="guide-info">
+            <q-icon name="circle"
+                    color="primary"
+                    class="q-mr-sm" />
+            1 مهر 1402
+            (انجام شد)
+          </div>
+          <div class="guide-info">
+            <q-icon name="circle"
+                    color="primary"
+                    class="q-mr-sm" />
+            1 دی 1402
+          </div>
+          <div class="guide-info">
+            <q-icon name="circle"
+                    color="primary"
+                    class="q-mr-sm" />
+            1 فروردین 1403
           </div>
 
-          <div v-if="settlementGuide"
-               class="guide-info">
-            راهنما و شرایط تسویه حساب را
-            <span class="custom-color"
-                  @click="openSettlementGuideDialog">
-              مطالعه کنید.
-            </span>
-          </div>
-          <div class="clearing-btn-box">
-            <div class="clearing-btn"
-                 @click="clearWallet">
-              تسویه حساب
-            </div>
-          </div>
+          <!--          <div v-if="settlementGuide"-->
+          <!--               class="guide-info">-->
+          <!--            راهنما و شرایط تسویه حساب را-->
+          <!--            <span class="custom-color"-->
+          <!--                  @click="openSettlementGuideDialog">-->
+          <!--              مطالعه کنید.-->
+          <!--            </span>-->
+          <!--          </div>-->
+          <!--          <div class="clearing-btn-box">-->
+          <!--            <div class="clearing-btn"-->
+          <!--                 @click="clearWallet">-->
+          <!--              تسویه حساب-->
+          <!--            </div>-->
+          <!--          </div>-->
         </div>
       </div>
     </div>
@@ -89,16 +117,12 @@
               class="tabs-box"
               active-class="tab-active-class"
               @change="handleTables">
-        <q-tab name="transactions"
-               :disabled="loading"
-               active-class="active-tab-t">
+        <q-tab name="transactions">
           <span class="tab-title">
             تراکنش کارت‌ها
           </span>
         </q-tab>
-        <q-tab name="clearingHistory"
-               :disabled="loading"
-               active-class="active-tab-t">
+        <q-tab name="clearingHistory">
           <span class="tab-title">
             تاریخچه تسویه
           </span>
@@ -109,128 +133,200 @@
       <q-tab-panels v-model="activeTab"
                     animated>
         <q-tab-panel name="transactions">
-          <div class="table-container">
-            <div class="table-title">
-              تراکنش کارت ها
+          <div class="table-title q-mb-md flex justify-between items-center">
+            تراکنش کارت ها
+            <div v-if="transactionLastPage > 1">
+              <div class="caption1">
+                تعداد در صفحه:
+              </div>
+              <q-select v-model="transactionPerPage"
+                        :options="[5, 10, 20, 30, 50, 100]"
+                        @update:model-value="getTransactionDataFromApi(1)" />
             </div>
-            <!--            <v-data-table-->
-            <!--              v-model:options="transactionsOptions"-->
-            <!--              :headers="transactionsHeaders"-->
-            <!--              :items="transactionsTableRow"-->
-            <!--              mobile-breakpoint="300"-->
-            <!--              :server-items-length="100"-->
-            <!--              :items-per-page="5"-->
-            <!--              :loading="loading"-->
-            <!--              class="gift-card-table"-->
-            <!--              disable-sort-->
-            <!--              fixed-header-->
-            <!--              hide-default-footer-->
-            <!--            >-->
-            <!--              <template v-slot:item.name="{ item }">-->
-            <!--                {{ item.name ? item.name : '-'  }}-->
-
-            <!--              </template>-->
-            <!--              <template v-slot:item.codeNumber="{ item }">-->
-            <!--                <div>-->
-            <!--                  {{ item.codeNumber ? 'AT ' + item.codeNumber : '-'}}-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--              <template v-slot:item.productTitle="{ item }">-->
-            <!--                <div class="flex-center">-->
-            <!--                  <div class="product-title">-->
-            <!--                    {{ item.productTitle ? item.productTitle : '-' }}-->
-            <!--                  </div>-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--              <template v-slot:item.purchaseDate="{ item }">-->
-            <!--                <div class="flex-center">-->
-            <!--                  {{ item.purchaseDate? item.purchaseDate : '-' }}-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--              <template v-slot:item.purchasePrice="{ item }">-->
-            <!--                <div class="flex-center">-->
-            <!--                  {{ item.purchasePrice? item.purchasePrice : '-' }}-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--              <template v-slot:item.income="{ item }">-->
-            <!--                <div class="flex-center">-->
-            <!--                  {{ item.income? item.income : '-' }}-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--            </v-data-table>-->
+          </div>
+          <div class="table-container text-center">
+            <q-table :rows="transactionsTableRow"
+                     :columns="transactionsHeaders"
+                     :loading="transactionsTableRowLoading"
+                     hide-bottom
+                     row-key="id">
+              <template #header-cell="props">
+                <q-th :props="props"
+                      class="table-row-txt">
+                  {{ props.col.label }}
+                </q-th>
+              </template>
+              <template #body-cell="props">
+                <q-td v-if="props.col.name === 'code'"
+                      class="table-column-txt">
+                  AT-{{props.value}}
+                </q-td>
+                <q-td v-else-if="props.col.name === 'product'"
+                      class="text-left table-column-txt">
+                  {{props.value}}
+                </q-td>
+                <q-td v-else-if="props.col.name === 'purchased_at' && props.value"
+                      class="table-column-txt">
+                  {{ convertToShamsi(props.value, 'date') }}
+                </q-td>
+                <q-td v-else-if="(props.col.name === 'commisson' || props.col.name === 'product_price') && props.value"
+                      class="table-column-txt">
+                  {{props.value.toLocaleString('fa')}}
+                </q-td>
+                <q-td v-else
+                      class="table-column-txt">
+                  {{ props.value }}
+                </q-td>
+              </template>
+            </q-table>
+          </div>
+          <div class="flex justify-center">
+            <q-pagination v-if="transactionLastPage > 1"
+                          v-model="transactionPage"
+                          :max="transactionLastPage"
+                          :max-pages="6"
+                          boundary-links
+                          icon-first="isax:arrow-left-2"
+                          icon-last="isax:arrow-right-3"
+                          class="gift-card-pagination q-mt-md"
+                          @update:model-value="getTransactionDataFromApi" />
+          </div>
+          <q-separator class="q-my-lg" />
+          <div class="table-title q-mb-md flex justify-between items-center">
+            کارت های صفر
+            <div v-if="zeroCardLastPage > 1">
+              <div class="caption1">
+                تعداد در صفحه:
+              </div>
+              <q-select v-model="zeroCardPerPage"
+                        :options="[5, 10, 20, 30, 50, 100]"
+                        @update:model-value="getZeroCardDataFromApi(1)" />
+            </div>
+          </div>
+          <div class="table-container text-center">
+            <q-table :rows="zeroCardTableRow"
+                     :columns="zeroCardHeaders"
+                     :loading="zeroCardTableRowLoading"
+                     hide-bottom
+                     row-key="id">
+              <template #header-cell="props">
+                <q-th :props="props"
+                      class="table-row-txt">
+                  {{ props.col.label }}
+                </q-th>
+              </template>
+              <template #body-cell="props">
+                <q-td v-if="props.col.name === 'code'"
+                      class="table-column-txt">
+                  AT-{{props.value}}
+                </q-td>
+                <q-td v-else-if="props.col.name === 'product'"
+                      class="text-left table-column-txt">
+                  {{props.value}}
+                </q-td>
+                <q-td v-else-if="props.col.name === 'purchased_at' && props.value"
+                      class="table-column-txt">
+                  {{ convertToShamsi(props.value, 'date') }}
+                </q-td>
+                <q-td v-else-if="(props.col.name === 'commisson' || props.col.name === 'product_price') && props.value"
+                      class="table-column-txt">
+                  {{props.value.toLocaleString('fa')}}
+                </q-td>
+                <q-td v-else
+                      class="table-column-txt">
+                  {{ props.value }}
+                </q-td>
+              </template>
+            </q-table>
+          </div>
+          <div class="flex justify-center">
+            <q-pagination v-if="zeroCardLastPage > 1"
+                          v-model="zeroCardPage"
+                          :max="zeroCardLastPage"
+                          :max-pages="6"
+                          boundary-links
+                          icon-first="isax:arrow-left-2"
+                          icon-last="isax:arrow-right-3"
+                          class="gift-card-pagination q-mt-md"
+                          @update:model-value="getZeroCardDataFromApi" />
           </div>
         </q-tab-panel>
         <q-tab-panel name="clearingHistory">
-          <div class="table-container">
-            <div class="table-title">
+          <div class="">
+            <div class="table-title q-mb-md flex justify-between items-center">
               تاریخچه تسویه
+              <div v-if="historyLastPage > 1 && false">
+                <div class="caption1">
+                  تعداد در صفحه:
+                </div>
+                <q-select v-model="historyPerPage"
+                          :options="[5, 10, 20, 30, 50, 100]"
+                          @update:model-value="getWithdrawHistory(1)" />
+              </div>
             </div>
-            <!--            <v-data-table-->
-            <!--              v-model:options="clearingHistoryOptions"-->
-            <!--              :headers="clearingHistoryHeaders"-->
-            <!--              :items="clearingHistoryTableRow"-->
-            <!--              mobile-breakpoint="300"-->
-            <!--              :server-items-length="100"-->
-            <!--              :items-per-page="5"-->
-            <!--              :loading="loading"-->
-            <!--              class="gift-card-table"-->
-            <!--              disable-sort-->
-            <!--              fixed-header-->
-            <!--              hide-default-footer-->
-            <!--            >-->
-            <!--              <template v-slot:item.number="{ item }">-->
-            <!--                <div class="flex-center">-->
-            <!--                  {{ item.number }}-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--              <template v-slot:item.price="{ item }">-->
-            <!--                <div class="flex-center">-->
-            <!--                  {{item.price}}-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--              <template v-slot:item.date="{ item }">-->
-            <!--                <div class="flex-center">-->
-            <!--                  {{item.date }}-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--              <template v-slot:item.status="{ item }">-->
-            <!--                <div class="flex-center"-->
-            <!--                     :class="(item.status.name === 5 || item.status.name === 3)? 'green-text': 'red-text'"-->
-
-            <!--                >-->
-            <!--                  {{ item.status.name }}-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--              <template v-slot:item.paymentDate="{ item }">-->
-            <!--                <div class="flex-center">-->
-            <!--                  {{item.paymentDate }}-->
-            <!--                </div>-->
-            <!--              </template>-->
-            <!--            </v-data-table>-->
+            <div class="table-container text-center">
+              <q-table :rows="clearingHistoryTableRow"
+                       :columns="clearingHistoryHeaders"
+                       :loading="clearingHistoryTableRowLoading"
+                       hide-bottom
+                       row-key="id">
+                <template #header-cell="props">
+                  <q-th :props="props"
+                        class="table-row-txt">
+                    {{ props.col.label }}
+                  </q-th>
+                </template>
+                <template #body-cell="props">
+                  <!--                  <q-td v-if="props.col.name === 'settlement-date'">-->
+                  <!--                    {{ convertToShamsi(props.value, 'date') }}-->
+                  <!--                  </q-td>-->
+                  <q-td v-if="props.col.name === 'status'"
+                        class="isAssigned-column table-column-txt">
+                    <div class="share-box">
+                      {{ getWithdrawStatus(props.value) }}
+                    </div>
+                  </q-td>
+                  <q-td v-else-if="props.col.name === 'amount' && props.value"
+                        class="table-column-txt">
+                    {{props.value.toLocaleString('fa')}}
+                  </q-td>
+                  <q-td v-else-if="props.col.name === 'updated-at'"
+                        class="table-column-txt">
+                    {{ convertToShamsi(props.value, 'date') }}
+                  </q-td>
+                  <q-td v-else>
+                    <div class="table-column-txt">
+                      {{ props.value }}
+                    </div>
+                  </q-td>
+                </template>
+              </q-table>
+            </div>
+            <div class="flex justify-center">
+              <q-pagination v-if="historyLastPage > 1"
+                            v-model="historyPage"
+                            :max="historyLastPage"
+                            :max-pages="6"
+                            boundary-links
+                            icon-first="isax:arrow-left-2"
+                            icon-last="isax:arrow-right-3"
+                            class="gift-card-pagination q-mt-md"
+                            @update:model-value="getWithdrawHistory" />
+            </div>
           </div>
         </q-tab-panel>
       </q-tab-panels>
     </div>
-    <q-dialog v-model="settlementGuideDialog"
-              width="500px">
+    <q-dialog v-model="settlementGuideDialog">
       <div class="settlementGuide-dialog">
-        <!--        <v-card>-->
-        <!--          <v-spacer />-->
-        <!--          <v-card-text>-->
-        <!--            <span v-html="settlementGuide" />-->
-        <!--          </v-card-text>-->
-
-        <!--          <v-divider />-->
-
-        <!--          <v-card-actions>-->
-        <!--            <v-spacer />-->
-        <!--            <v-btn color="#FF9000"-->
-        <!--                   text-->
-        <!--                   @click="settlementGuideDialog = false">-->
-        <!--              بستن-->
-        <!--            </v-btn>-->
-        <!--          </v-card-actions>-->
-        <!--        </v-card>-->
+        <q-btn color="primary"
+               icon="isax:close-circle"
+               @click="settlementGuideDialog = false" />
+        <div class="text q-my-lg">
+          <span>
+            لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ، و با استفاده از طراحان گرافیک است، چاپگرها و متون بلکه روزنامه و مجله در ستون و سطرآنچنان که لازم است، و برای شرایط فعلی تکنولوژی مورد نیاز، و کاربردهای متنوع با هدف بهبود ابزارهای کاربردی می باشد، کتابهای زیادی در شصت و سه درصد گذشته حال و آینده، شناخت فراوان جامعه و متخصصان را می طلبد، تا با نرم افزارها شناخت بیشتری را برای طراحان رایانه ای علی الخصوص طراحان خلاقی، و فرهنگ پیشرو در زبان فارسی ایجاد کرد، در این صورت می توان امید داشت که تمام و دشواری موجود در ارائه راهکارها، و شرایط سخت تایپ به پایان رسد و زمان مورد نیاز شامل حروفچینی دستاوردهای اصلی، و جوابگوی سوالات پیوسته اهل دنیای موجود طراحی اساسا مورد استفاده قرار گیرد.
+          </span>
+        </div>
       </div>
     </q-dialog>
   </div>
@@ -238,44 +334,85 @@
 
 <script>
 import Price from 'src/models/Price.js'
-import Assist from 'src/assets/js/Assist.js'
+import { APIGateway } from 'src/api/APIGateway.js'
 import GiftCardMixin from '../Mixin/GiftCardMixin.js'
-import { APIGateway } from 'src/api/APIGateway'
+import mixinDateOptions from 'src/mixin/DateOptions.js'
+
 export default {
   name: 'GiftCardTransactions',
-  mixins: [GiftCardMixin],
+  mixins: [GiftCardMixin, mixinDateOptions],
   data: () => ({
+    sales_man: {
+      wallet_type: 'main_account',
+      wallet_balance: 0,
+      total_commission: 0,
+      has_signed_contract: false,
+      minAmount_until_settlement: 0,
+      count_of_total_gift_cards: 0,
+      count_of_used_gift_cards: 0,
+      count_of_remain_gift_cards: 0,
+      income_being_settle: 0
+    },
     test: 7000000000,
     settlementGuideDialog: false,
     percentage: 0,
-    lastPage: 0,
-    page: 1,
+    transactionLastPage: 0,
+    transactionPage: 1,
+    transactionPerPage: 5,
+    zeroCardLastPage: 0,
+    zeroCardPage: 1,
+    zeroCardPerPage: 5,
+    salesManLoading: false,
+    historyLastPage: 0,
+    historyPage: 1,
+    historyPerPage: 5,
     activeTab: 'transactions',
-    transactionsHeaders: [
-      { text: 'نام خریدار', cellClass: 'custom-cell-width transaction-first-colum-padding', class: 'header-style transaction-first-colum-padding', value: 'name' },
-      { text: 'شماره کارت', cellClass: 'min-colum-width', class: 'header-style', value: 'codeNumber' },
-      { text: 'محصول', cellClass: 'title-width', class: 'header-style', value: 'productTitle' },
-      { text: 'تاریخ خرید', cellClass: 'min-colum-width', class: 'header-style', value: 'purchaseDate' },
-      { text: 'مبلغ خرید', cellClass: 'min-colum-width', class: 'header-style', value: 'purchasePrice' },
-      { text: 'درآمد شما', cellClass: 'min-colum-width', class: 'header-style', value: 'income' }
-    ],
     clearingHistoryHeaders: [
-      { text: 'شماره تراکنش', cellClass: 'custom-cell-width transaction-first-colum-padding', class: 'header-style transaction-first-colum-padding', value: 'id' },
-      { text: 'مبلغ', cellClass: 'min-colum-width', class: 'header-style', value: 'price' },
-      { text: 'تاریخ درخواست', cellClass: 'min-colum-width', class: 'header-style', value: 'date' },
-      { text: 'وضعیت', cellClass: 'custom-cell-width', class: 'header-style', value: 'status' },
-      { text: 'تاریخ پرداخت', cellClass: 'min-colum-width', class: 'header-style', value: 'paymentDate' }
+      { name: 'bank-tracking-code', align: 'center', label: 'شماره تراکنش', field: 'bank-tracking-code' },
+      { name: 'amount', align: 'center', label: 'مبلغ(تومان)', field: 'amount' },
+      { name: 'settlement-date', align: 'center', label: 'تاریخ درخواست', field: 'settlement-date' },
+      { name: 'status', align: 'center', label: 'وضعیت', field: 'status' },
+      { name: 'updated-at', align: 'center', label: 'تاریخ پرداخت', field: 'updated-at' }
     ],
     loading: false,
-    transactionsOptions: {},
+
     transactionsTableRow: [],
+    transactionsTableRowLoading: false,
+    transactionsHeaders: [
+      { name: 'name', align: 'center', label: 'نام خریدار', field: 'full_name' },
+      { name: 'code', align: 'center', label: 'شماره کارت', field: 'code' },
+      { name: 'product', align: 'center', label: 'محصول', field: 'product' },
+      { name: 'purchased_at', align: 'center', label: 'تاریخ خرید', field: 'purchased_at' },
+      { name: 'commision_percent', align: 'center', label: 'درصد مشارکت', field: 'commisson_percentage' },
+      { name: 'product_price', align: 'center', label: 'مبلغ خرید(تومان)', field: 'product_price' },
+      { name: 'commisson', align: 'center', label: 'درآمد شما(تومان)', field: 'commisson' }
+    ],
+
+    zeroCardTableRow: [],
+    zeroCardTableRowLoading: false,
+    zeroCardHeaders: [
+      { name: 'name', align: 'center', label: 'نام خریدار', field: 'full_name' },
+      { name: 'code', align: 'center', label: 'شماره کارت', field: 'code' },
+      { name: 'product', align: 'center', label: 'محصول', field: 'product' },
+      { name: 'purchased_at', align: 'center', label: 'تاریخ خرید', field: 'purchased_at' },
+      { name: 'commision_percent', align: 'center', label: 'درصد مشارکت', field: 'commisson_percentage' },
+      { name: 'product_price', align: 'center', label: 'مبلغ خرید(تومان)', field: 'product_price' },
+      { name: 'commisson', align: 'center', label: 'درآمد شما(تومان)', field: 'commisson' }
+    ],
+
     clearingHistoryOptions: {},
-    clearingHistoryTableRow: []
+    clearingHistoryTableRow: [],
+    clearingHistoryTableRowLoading: false
   }),
   computed: {
     remainigAmountUntilSettlement () {
       return new Price({
-        base: this.minAmountUntilSettlement - this.walletBalance
+        base: this.minAmountUntilSettlement - this.sales_man.wallet_balance
+      })
+    },
+    awaitingSattlement() {
+      return new Price({
+        base: this.sales_man.income_being_settle
       })
     },
     walletBalance() {
@@ -292,23 +429,34 @@ export default {
     },
     minAmountUntilSettlement() {
       // return this.$store.getters.appProps.minAmountUntilSettlement
-      return 1
+      return 1000000
     },
-
     incomeBeingSettle() {
       // return this.$store.getters.appProps.incomeBeingSettle
       return 1
     }
-
   },
-  created() {
+  mounted() {
     this.loadAllData()
   },
   methods: {
     loadAllData() {
+      this.getSalesMan()
       this.setPercentage()
+      this.getZeroCardDataFromApi()
       this.getTransactionDataFromApi()
-      // this.getClearingHistoryDataFromApi()
+      this.getWithdrawHistory()
+    },
+    getSalesMan() {
+      this.salesManLoading = true
+      APIGateway.referralCode.getSalesManData()
+        .then((response) => {
+          this.salesManLoading = false
+          this.sales_man = response
+        })
+        .catch(() => {
+          this.salesManLoading = false
+        })
     },
     openSettlementGuideDialog() {
       this.settlementGuideDialog = true
@@ -320,91 +468,66 @@ export default {
       }
       this.percentage = (1 - (this.minAmountUntilSettlement - this.walletBalance) / this.minAmountUntilSettlement) * 100
     },
-    async clearWallet() {
-      try {
-        await this.$axios.post('/ajax/wallet/withdraw', { wallet_type_id: 1 })
-        location.reload()
-        this.toast(' با موفقیت ثبت  شد')
-      } catch (e) {
-        const messages = this.getErrorMessages(e.response.data)
-        this.showErrorMessages(messages)
+    clearWallet() {
+      APIGateway.referralCode.getWithdrawWallet()
+        .then((response) => {
+          location.reload()
+          this.toast(' با موفقیت ثبت  شد')
+        })
+        .catch((e) => {
+          const messages = this.getErrorMessages(e.response.data)
+          this.showErrorMessages(messages)
+        })
+    },
+    getWithdrawStatus(value) {
+      if (value === 'pending') {
+        return 'در صف انتظار'
+      }
+      if (value === 'canceled') {
+        return 'پرداخت نشده'
+      }
+      if (value === 'rejected') {
+        return 'پرداخت نشده'
+      }
+      if (value === 'complete') {
+        return 'پرداخت شده'
       }
     },
-    getTransactionDataFromApi(page = 1) {
-      this.loading = true
-      this.referralCodeList = []
-      APIGateway.referralCode.getOrderProducts({ data: { page } })
-        .then(() => {
-          // console.log('response', response)
-          // this.lastPage = paginate.last_page
-          // this.referralCodeList = referralCodeList
-          this.loading = false
+    getWithdrawHistory(page = 1) {
+      this.clearingHistoryTableRowLoading = true
+      APIGateway.referralCode.getWithdrawHistory({ /* per_page: this.historyPerPage,  */page })
+        .then(({ clearingHistoryTableRow, paginate }) => {
+          this.clearingHistoryTableRow = clearingHistoryTableRow.list
+          this.historyLastPage = paginate
+          this.clearingHistoryTableRowLoading = false
         })
         .catch(() => {
-          this.loading = false
+          this.clearingHistoryTableRowLoading = false
         })
-
-      // this.loading = true
-      // this.transactionsTableRow = []
-      // try {
-      //   const response = await this.TransactionApiCall()
-      //   this.lastPage = response.data.meta.last_page
-      //   const responseList = response.data.data
-      //   responseList.forEach(card => {
-      //     this.transactionsTableRow.push({
-      //       id: card.id,
-      //       name: card.full_name,
-      //       codeNumber: card.code,
-      //       productTitle: card.product,
-      //       purchaseDate: Assist.miladiToShamsi(card.purchased_at, true),
-      //       purchasePrice: new Price({ base: card.product_price }).toman('base'),
-      //       income: new Price({ base: card.commisson }).toman('base')
-      //     })
-      //   })
-      //   this.loading = false
-      // } catch (err) {
-      //   this.loading = false
-      //   const messages = this.getErrorMessages(err.response.data)
-      //   this.showErrorMessages(messages)
-      // }
-      //
-      // this.loading = false
     },
-    async getClearingHistoryDataFromApi() {
-      this.loading = true
-      this.clearingHistoryTableRow = []
-      try {
-        const response = await this.clearingHistoryApiCall()
-        this.lastPage = response.data.meta.last_page
-        const responseList = response.data.data
-        responseList.forEach(card => {
-          this.clearingHistoryTableRow.push({
-            id: card.id,
-            number: card.paycheck_number,
-            price: new Price({ base: card.cost }).toman('base'),
-            date: Assist.miladiToShamsi(card.created_at, true),
-            status: card.transaction_status,
-            paymentDate: Assist.miladiToShamsi(card.completed_at, true)
-          })
+    getTransactionDataFromApi(page = 1) {
+      this.transactionsTableRowLoading = true
+      APIGateway.referralCode.getOrderProducts({ per_page: this.transactionPerPage, page })
+        .then(({ transactionsTableRow, paginate }) => {
+          this.transactionsTableRow = transactionsTableRow.list
+          this.transactionLastPage = paginate.last_page
+          this.transactionsTableRowLoading = false
         })
-        this.loading = false
-      } catch (err) {
-        this.loading = false
-        const messages = this.getErrorMessages(err.response.data)
-        this.showErrorMessages(messages)
-      }
-
-      this.loading = false
+        .catch(() => {
+          this.transactionsTableRowLoading = false
+        })
     },
-    TransactionApiCall() {
-      return this.$axios.get('/ajax/referralCode/orderproducts', {
-        ...(this.page > 1 && { params: { page: this.page } })
-      })
-    },
-    clearingHistoryApiCall() {
-      return this.$axios.get('/ajax/wallet/withdraw-requests', {
-        ...(this.page > 1 && { params: { page: this.page } })
-      })
+    getZeroCardDataFromApi(page = 1) {
+      this.zeroCardTableRowLoading = true
+      APIGateway.referralCode.noneProfitableOrderproducts({ per_page: this.zeroCardPerPage, page })
+        .then(({ zeroCardTableRow, paginate }) => {
+          this.zeroCardTableRow = zeroCardTableRow.list
+          this.zeroCardLastPage = paginate.last_page
+          this.zeroCardTableRowLoading = false
+        })
+        .catch(() => {
+          this.zeroCardTableRowLoading = false
+        })
     }
   }
 }
@@ -438,6 +561,23 @@ export default {
 <style scoped lang="scss">
 
 .transition-panel{
+  .tabs-section{
+    :deep(.q-tab-panels){
+      background: transparent;
+    }
+    .table-container{
+      .table-row-txt{
+        font-size: 16px;
+        font-weight: 600;
+        color: #697D9A;
+      }
+      .table-column-txt{
+        font-size: 14px;
+        font-weight: 400;
+        color: #697D9A;
+      }
+    }
+  }
   .green-text{
     color :#E94B47;
   }
@@ -484,27 +624,29 @@ export default {
       position: absolute;
       bottom: 0;
       background: #E7ECF4;
-    }
-    .table-container{
-      margin: 30px 0;
-      .table-title{
-        font-style: normal;
-        font-weight: 600;
-        font-size: 20px;
-        line-height: 31px;
-        text-align: left;
-        letter-spacing: -0.03em;
-        color: #8798B1;
-        margin-bottom: 16px;
-        @media screen and (max-width: 599px) {
-          font-size: 14px;
-          line-height: 25px;
-        }
+
+      .gift-card-pagination {
+        margin-top: 40px;
       }
     }
   }
 
-  .active-tab-t{
+  .table-title{
+      font-style: normal;
+      font-weight: 600;
+      font-size: 20px;
+      line-height: 31px;
+      text-align: left;
+      letter-spacing: -0.03em;
+      color: #8798B1 !important;
+      margin-bottom: 16px;
+      @media screen and (max-width: 599px) {
+        font-size: 16px;
+        line-height: 25px;
+      }
+    }
+
+  .tab-active-class{
     .tab-title{
       color:#FF9000;
       font-weight: 600;
@@ -594,7 +736,7 @@ export default {
     }
   }
   .income{
-    margin: 0 0 0 15px;
+    //margin: 0 0 0 15px;
   }
   .demand{
     margin: 0 15px;
@@ -644,11 +786,24 @@ export default {
   .pagination-box{
     margin-top: 40px
   }
-  .settlementGuide-dialog {
-    padding: 20px;
+  .dialog-container {
+    .settlementGuide-dialog {
+      background-color: #E5E5E5;
+      height: 100%;
+      padding: 20px;
+    }
   }
 }
 @media only screen and (max-width: 1903px){
+    .settlementGuide-dialog {
+      background-color: white;
+      border-radius: 20px;
+      padding: 20px;
+      .text {
+        font-size: 20px;
+      }
+    }
+
   .introduction-box{
     margin-bottom: 24px;
     .left-side{

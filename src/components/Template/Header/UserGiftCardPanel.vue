@@ -1,140 +1,80 @@
 <template>
   <div class="header">
     <div class="title">
-      کارت هدیه آلاء
+      کار آفرینی
     </div>
     <div class="dropdown-menu">
-      <q-btn flat
-             class="btn-user-profile">
-        <lazy-img :src="user.photo"
-                  :alt="'user photo'"
-                  width="48"
-                  height="48"
-                  class="user-photo" />
-        <q-menu class="user-profile-dropdown"
-                :offset="[170, 10]">
-          <div class="dropdown-box">
-            <div class="header">
-              <div class="profile-box">
-                <div class="profile-detail">
-                  <div class="profile-photo-box">
-                    <div class="profile-photo-img">
-                      <lazy-img :src="user.photo"
-                                :alt="'user photo'"
-                                width="60"
-                                height="60"
-                                class="user-photo" />
-                    </div>
-                  </div>
-                  <div v-if="isUserLogin"
-                       class="profile-detail-info">
-                    <div class="info-name">{{user.full_name}}</div>
-                    <div class="info-phoneNumber">{{user.mobile}}</div>
-                  </div>
-                </div>
-              </div>
+      <div v-if="isMyCardsPage"
+           class="sms-help-container"
+           @click="toggleDialog">
+        <div class="sms-help-text">
+          راهنمای کد پیامکی
+        </div>
+        <q-icon class="sms-help-icon"
+                name="ph:chat-text"
+                size="16px" />
+      </div>
+      <btn-user-profile-menu />
+    </div>
+    <q-dialog v-model="smsHelpDialog">
+      <q-card class="sms-help-dialog">
+        <q-card-section class="sms-help-dialog_header">
+          <span class="sms-help-dialog_header__title">راهنمای کدهای پیامکی</span>
+          <q-btn icon="close"
+                 class="sms-help-dialog_header__closeBtn"
+                 flat
+                 @click="toggleDialog" />
+        </q-card-section>
+        <q-separator class="grey1" />
+        <q-card-section class="sms-help-dialog_main">
+          <div class="sms-help-dialog_main__title">
+            آسان کارت با ارسال کد های پایین به سرشماره 100062013
+          </div>
+          <div class="sms-help-dialog_main__list">
+            <div class="sms-help-item">
+              دریافت کارت :G0
             </div>
-            <div class="body">
-              <div class="user-panel-base-menu">
-                <q-list class="side-menu-list"
-                        padding
-                        dark>
-                  <div v-for="(item , index) in profileTitlesList"
-                       :key="index">
-                    <div>
-                      <q-item class="item-list"
-                              :class="{ 'alone-item': !item.children.length }"
-                              :to="{ name: item.routeName, params: item.params }">
-                        <div class="section-title">
-                          <q-item-section class="list-section title-icon"
-                                          avatar>
-                            <q-avatar :icon="item.icon"
-                                      size="30" />
-                          </q-item-section>
-                          <q-item-section class="list-section">
-                            {{ item.title }}
-                          </q-item-section>
-                          <span class="indicator" />
-                        </div>
-                      </q-item>
-                    </div>
-                  </div>
-                </q-list>
-                <div class="log-out"
-                     @click="logOut">
-                  <span>
-                    <q-avatar icon="isax:logout"
-                              size="30"
-                              dir="rtl" />
-                  </span>
-                  <span class="logout-text">خروج </span>
-                </div>
-              </div>
+            <div class="sms-help-item">
+              کارت‌های موجود :G1
+            </div>
+            <div class="sms-help-item">
+              موجودی حساب :G2
+            </div>
+            <div class="sms-help-item">
+              تسویه حساب :G3
             </div>
           </div>
-        </q-menu>
-      </q-btn>
-    </div>
+        </q-card-section>
+        <q-card-actions class="sms-help-dialog_action"
+                        align="right">
+          <q-btn label="فهمیدم"
+                 class="action-btn"
+                 @click="toggleDialog" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script>
-import { User } from 'src/models/User.js'
-import LazyImg from 'src/components/lazyImg.vue'
+import BtnUserProfileMenu from 'src/components/BtnUserProfileMenu.vue'
 
 export default {
   name: 'UserGiftCardPanel',
-  components: { LazyImg },
+  components: { BtnUserProfileMenu },
   data() {
     return {
-      user: new User(),
-      profileTitlesList: [
-        {
-          title: 'پروفایل',
-          icon: 'isax:user',
-          routeName: 'UserPanel.Profile',
-          permission: 'all',
-          active: false,
-          children: []
-        },
-        {
-          title: 'فیلم ها و جزوه های من',
-          icon: 'isax:task-square',
-          routeName: 'UserPanel.MyPurchases',
-          params: null,
-          permission: 'all',
-          active: false,
-          children: []
-        },
-        {
-          title: 'علاقه مندی های من',
-          icon: 'isax:heart',
-          routeName: 'UserPanel.MyFavorites',
-          params: null,
-          permission: 'all',
-          active: false,
-          children: []
-        },
-        {
-          title: 'سفارش‌ ها',
-          icon: 'isax:clipboard-text',
-          routeName: 'UserPanel.MyOrders',
-          permission: 'all',
-          active: false,
-          children: []
-        }
-      ]
+      smsHelpDialog: false
     }
   },
-  mounted () {
-    this.loadAuthData()
+  computed: {
+    isMyCardsPage() {
+      return this.$route.name === 'UserPanel.Asset.GiftCard.MyGiftCards'
+    }
   },
   methods: {
-    loadAuthData () { // prevent Hydration node mismatch
-      this.user = this.$store.getters['Auth/user']
-    },
-    logOut() {
-      return this.$store.dispatch('Auth/logOut')
+    toggleDialog() {
+      this.smsHelpDialog = !this.smsHelpDialog
     }
   }
 }
@@ -153,30 +93,139 @@ export default {
     line-height: 37px;
     letter-spacing: -0.03em;
     color: #697D9A;
-    margin-top: 40px;
-    margin-left: 96px;
+    margin-top: 24px;
+    margin-left: 30px;
   }
   .dropdown-menu {
-    margin-top: 40px;
-    margin-right: 96px;
-    .btn-user-profile {
-      margin-left: 18px;
-      width: 48px;
-      height: 48px;
-      border-radius: 16px;
-      :deep(.q-btn__content) {
-        margin: 0;
-        .user-photo {
-          img {
-            border: 2px solid #FFB74D;
-            border-radius: 16px;
-            max-width: 100%;
-            width: 100%;
-          }
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 24px;
+    margin-right: 30px;
+
+    .sms-help-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 153px;
+      height: 40px;
+      background: #E7ECF4;
+      margin-right: 24px;
+      border-radius: 20px;
+      cursor: pointer;
+
+      @media screen and (max-width: 600px){
+        width: 36px;
+        height: 32px;
+        border-radius: 50%;
+      }
+
+      .sms-help-text {
+        color: #697D9A;
+
+        @media screen and (max-width: 600px){
+          display:none;
+        }
+      }
+      .sms-help-icon {
+        display:none;
+        color: #697D9A;
+
+        @media screen and (max-width: 600px){
+          display:block;
         }
       }
     }
   }
 }
+.sms-help-dialog {
+  width: 360px;
+  height: 284px;
+  border-radius: 12px;
+  background: #FFF;
+  box-shadow: 0px 2px 4px -2px rgba(16, 24, 40, 0.06), 0px 4px 8px -2px rgba(16, 24, 40, 0.10);
 
+  @media screen and (max-width: 600px){
+    width: 320px;
+    height: 303px;
+  }
+
+  &_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+
+    &__title {
+      color:#697D9A;
+      font-size: 16px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: normal;
+      letter-spacing: -0.48px;
+    }
+    &__closeBtn {
+      color:#697D9A;
+      padding: 0;
+    }
+  }
+
+  &_main {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+
+    &__title {
+      color:#697D9A;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: normal;
+      letter-spacing: -0.42px;
+    }
+
+    &__list {
+      width: 100%;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+
+      .sms-help-item {
+        color:#697D9A;
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: normal;
+        letter-spacing: -0.42px;
+      }
+    }
+  }
+
+  &_action {
+    padding: 0 20px 20px;
+    .action-btn {
+      width: 96px;
+      height: 32px;
+      min-width: 96px;
+      padding: 4px 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 8px;
+      background: #09AC73;
+      color: #FFF;
+      text-align: center;
+      font-feature-settings: 'clig' off, 'liga' off;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: normal;
+      letter-spacing: -0.42px;
+    }
+  }
+}
 </style>

@@ -1,10 +1,20 @@
-export default function Authenticated (
-  /* { to, from, next, store } */ { next, store, to }
-) {
-  if (!process.env.SERVER && !store.getters['Auth/accessToken']) {
-    store.commit('Auth/updateRedirectTo', to.name)
-    return next({ name: 'login' })
-  }
+export default function Authenticated (withDialog = false) {
+  return function ({ next, store, to }) {
+    const accessToken = store.$accessToken
+    // const hasSessionToken = Object.keys(store.$sessions).filter(sessionName => !!store.$sessions[sessionName]).length === Object.keys(store.$sessions).length
 
-  return next()
+    // if (!accessToken || !hasSessionToken) {
+    if (!accessToken) {
+      store.commit('Auth/updateRedirectTo', { name: to.name, params: to.params, query: to.query })
+      if (!withDialog) {
+        return next({ name: 'login' })
+      } else {
+        store.commit('AppLayout/updateLoginDialog', true)
+      }
+    } else {
+      store.commit('AppLayout/updateLoginDialog', false)
+    }
+
+    return next()
+  }
 }

@@ -4,13 +4,8 @@
       <div class="option-panel-container">
         <div class="row">
           <div class="col-md-6">
-            <q-select v-model="localOptions.apiName"
-                      :options="apiOptions"
-                      label="api" />
-          </div>
-          <div class="col-md-6">
-            <q-input v-model="localOptions.urlParam"
-                     label="urlParam" />
+            <div class="outsideLabel">list height</div>
+            <q-input v-model="localOptions.listHeight" />
           </div>
         </div>
       </div>
@@ -19,7 +14,8 @@
 </template>
 <script>
 import { defineComponent } from 'vue'
-import { mixinOptionPanel, OptionPanelTabs } from 'quasar-ui-q-page-builder'
+import { mixinOptionPanel } from 'quasar-ui-q-page-builder'
+import OptionPanelTabs from 'quasar-ui-q-page-builder/src/components/OptionPanelComponents/OptionPanelTabs.vue'
 
 export default defineComponent({
   name: 'OptionPanel',
@@ -37,6 +33,7 @@ export default defineComponent({
     return {
       apiOptions: ['home', 'shop'],
       defaultOptions: {
+        listHeight: '',
         className: '',
         height: 'auto',
         boxed: false,

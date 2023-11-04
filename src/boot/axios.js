@@ -1,10 +1,14 @@
 import { boot } from 'quasar/wrappers'
-import axios from 'axios'
-import { Notify } from 'quasar'
+import { Notify, Cookies } from 'quasar'
+import APIInstanceWrapper from 'src/api/classes/APIInstanceWrapper.js'
 
 const apiV2Server = process.env.ALAA_API_V2
+const apiV2ServerTarget = process.env.ALAA_API_V2_SERVER
 const apiV1Server = process.env.ALAA_API_V1
+const apiV1ServerTarget = process.env.ALAA_API_V1_SERVER
 const webServer = process.env.ALAA_WEB
+const webServerTarget = process.env.ALAA_WEB_SERVER
+
 const AjaxResponseMessages = (function () {
   const messageMap = {
     0: 'مشکلی پیش آمده است. مجدد تلاش کنید.',
@@ -23,11 +27,11 @@ const AjaxResponseMessages = (function () {
     17: 'ثبت درس تکراری در یک دفترچه امکان پذیر نیست.'
   }
 
-  function isCustomMessage (statusCode) {
+  function isCustomMessage(statusCode) {
     return !!(messageMap[statusCode.toString()])
   }
 
-  function getMessage (statusCode) {
+  function getMessage(statusCode) {
     return messageMap[statusCode]
   }
 
@@ -40,14 +44,14 @@ const AjaxResponseMessages = (function () {
 const AxiosHooks = (function () {
   let $notify = null
 
-  function setNotifyInstance ($q) {
+  function setNotifyInstance($q) {
     if (!$q.notify) {
       return
     }
     $notify = $q.notify
   }
 
-  function handleErrors (error, router, store) {
+  function handleErrors(error, router, store) {
     let messages = []
     if (!error || !error.response) {
       return
@@ -77,13 +81,16 @@ const AxiosHooks = (function () {
           messages = messages.concat(getMessagesFromArrayWithRecursion(value))
         }
       }
+    } else if (!error.response.data.errors && error.response.data.message) {
+      messages.push(error.response.data.message)
     }
 
     toastMessages(messages)
+    return Promise.reject(error)
   }
 
-  function deAuthorizeUser (router, store) {
-    store.dispatch('Auth/logOut')
+  function deAuthorizeUser(router, store) {
+    store.dispatch('Auth/logOut', { redirectTo: false, clearRedirectTo: false })
     const loginRouteName = 'login'
     const currentRoute = (router?.currentRoute?._value) ? router.currentRoute._value : (router?.history?.current) ? router.history.current : null
     if (currentRoute && currentRoute.name === loginRouteName) {
@@ -91,9 +98,10 @@ const AxiosHooks = (function () {
     }
     store.commit('Auth/updateRedirectTo', currentRoute)
     router.push({ name: loginRouteName })
+    // store.commit('AppLayout/updateLoginDialog', true)
   }
 
-  function toastMessages (messages) {
+  function toastMessages(messages) {
     messages.forEach((item) => {
       if ($notify) {
         $notify({
@@ -115,7 +123,7 @@ const AxiosHooks = (function () {
     })
   }
 
-  function getMessagesFromArrayWithRecursion (array) {
+  function getMessagesFromArrayWithRecursion(array) {
     if (array) {
       if (Array.isArray(array)) {
         return array.flat(Math.min())
@@ -133,59 +141,77 @@ const AxiosHooks = (function () {
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
 // If any client changes this (global) instance, it might be a
-// good idea to move this instance creation inside of the
+// good idea to move this instance creation inside the
 // "export default () => {}" function below (which runs individually
 // for each client)
-const apiV2 = axios.create({ baseURL: apiV2Server })
-const apiV1 = axios.create({ baseURL: apiV1Server })
-const apiWeb = axios.create({ baseURL: webServer })
 
-export default boot(({ app, store, router }) => {
-  const accessToken = store.getters['Auth/accessToken']
-  if (accessToken) {
-    axios.defaults.headers.common.Authorization = 'Bearer ' + accessToken
-    apiV2.defaults.headers.common.Authorization = 'Bearer ' + accessToken
-    apiV1.defaults.headers.common.Authorization = 'Bearer ' + accessToken
-    apiWeb.defaults.headers.common.Authorization = 'Bearer ' + accessToken
-  }
-  // for use inside Vue files (Options API) through this.$axios and this.$api
-  const instance = axios.create(/* ... */)
+const apiV2 = APIInstanceWrapper.createInstance(apiV2Server, apiV2ServerTarget)
+const apiV1 = APIInstanceWrapper.createInstance(apiV1Server, apiV1ServerTarget)
+const apiWeb = APIInstanceWrapper.createInstance(webServer, webServerTarget)
 
-  app.config.globalProperties.$axios = axios
-  // ^ ^ ^ this will allow you to use this.$axios (for Vue Options API form)
-  //       so you won't necessarily have to import axios in each vue file
-
-  app.config.globalProperties.$apiV2 = apiV2
-  app.config.globalProperties.$apiV1 = apiV1
-  app.config.globalProperties.$apiWeb = apiWeb
+export default boot(({ app, store, router, ssrContext }) => {
   // ^ ^ ^ this will allow you to use this.$api (for Vue Options API form)
   //       so you can easily perform requests against your app's API
 
   AxiosHooks.setNotifyInstance(app.config.globalProperties.$q)
-  axios.interceptors.response.use(undefined, function (error) {
-    AxiosHooks.handleErrors(error, router, store)
-    return Promise.reject(error)
-  })
-  apiV2.interceptors.response.use(undefined, function (error) {
-    AxiosHooks.handleErrors(error, router, store)
-    return Promise.reject(error)
-  })
 
-  app.axios = instance
-  store.$axios = instance
-  router.$axios = instance
+  if (apiV2.interceptors) {
+    apiV2.interceptors.response.use(undefined, async function (error) {
+      return Promise.reject(await AxiosHooks.handleErrors(error, router, store))
+    })
+  }
 
-  app.apiV1 = apiV1
   store.$apiV1 = apiV1
   router.$apiV1 = apiV1
 
-  app.apiV2 = apiV2
   store.$apiV2 = apiV2
   router.$apiV2 = apiV2
 
-  app.apiWeb = apiWeb
   store.$apiWeb = apiWeb
   router.$apiWeb = apiWeb
+
+  store.$axios = apiV2
+  router.$axios = apiV2
+
+  app.config.globalProperties.$axios = apiV2
+  app.config.globalProperties.$apiV2 = apiV2
+  app.config.globalProperties.$apiV1 = apiV1
+  app.config.globalProperties.$apiWeb = apiWeb
+
+  const cookies = process.env.SERVER
+    ? Cookies.parseSSR(ssrContext)
+    : Cookies // otherwise we're on client
+
+  const allCookies = cookies.getAll()
+  const cookiesAccessTokenInCookies = cookies.get('BearerAccessToken') ? cookies.get('BearerAccessToken') : allCookies.BearerAccessToken
+  // const cookiesAccessTokenInCookies = cookies.get('BearerAccessToken')
+  const accessTokenInLocalStorage = store.getters['Auth/accessToken']
+  const cookiesAccessToken = accessTokenInLocalStorage || cookiesAccessTokenInCookies
+
+  if (cookiesAccessToken) {
+    const tokenType = 'Bearer'
+    store.$accessToken = cookiesAccessToken
+
+    // const internalAxiosRequesConfig = (config) => {
+    //   config.headers.Authorization = `${tokenType} ${cookiesAccessToken}`
+    //   return config
+    // }
+    // const onRejectAxios = (error) => {
+    //   return Promise.reject(error)
+    // }
+
+    // apiV2.interceptors.request.use(internalAxiosRequesConfig, onRejectAxios)
+    // apiV1.interceptors.request.use(internalAxiosRequesConfig, onRejectAxios)
+    // apiWeb.interceptors.request.use(internalAxiosRequesConfig, onRejectAxios)
+    store.commit('Auth/updateAxiosAuthorization', cookiesAccessToken)
+
+    apiV2.defaults.headers.common.Authorization = tokenType + ' ' + cookiesAccessToken
+    apiV1.defaults.headers.common.Authorization = tokenType + ' ' + cookiesAccessToken
+    apiWeb.defaults.headers.common.Authorization = tokenType + ' ' + cookiesAccessToken
+  } else {
+    // console.error('axios boot->Auth/logOut')
+    store.dispatch('Auth/logOut')
+  }
 })
 
-export { axios, apiV1, apiV2, apiWeb }
+export { apiV1, apiV2, apiWeb }

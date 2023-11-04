@@ -1,9 +1,11 @@
 <template>
   <div class="row  justify-center">
-    <div class="col-8 q-mb-xl">
-      <entity-edit ref="entityEdit"
+    <div class="col-12 q-mb-xl">
+      <entity-edit v-if="isEntityReady"
+                   ref="entityEdit"
                    v-model:value="inputs"
                    :show-save-button="false"
+                   :show-close-button="false"
                    :title="'شماره تیکت ' + getInputsValue('id') + ' در ' + getInputsValue('department_title')"
                    :api="api"
                    entity-id-key="id"
@@ -11,7 +13,7 @@
                    :show-route-name="options.indexRouteName"
                    :after-load-input-data="checkLoadInputData">
         <template #before-form-builder>
-          <div class="flex justify-around">
+          <div class="flex justify-around q-mb-md">
             <q-btn rounded
                    color="blue"
                    icon="isax:archive-book"
@@ -20,7 +22,7 @@
                 باز شدن لیست اتفاقات
               </q-tooltip>
             </q-btn>
-            <q-btn v-if="isAdmin"
+            <q-btn v-if="isInAdminPage"
                    rounded
                    color="blue"
                    :loading="loading"
@@ -30,10 +32,19 @@
                 باز شدن لیست خرید
               </q-tooltip>
             </q-btn>
+            <q-btn rounded
+                   color="blue"
+                   :loading="loading"
+                   icon="isax:document4"
+                   :to="ticketListRoute">
+              <q-tooltip>
+                بازگشت به صفحه لیست تیکت ها
+              </q-tooltip>
+            </q-btn>
           </div>
-          <div v-if="isAdmin"
-               class="row q-mt-lg">
-            <div class="col-4 q-px-lg">
+          <div v-if="isInAdminPage"
+               class="row q-my-lg q-col-gutter-md">
+            <div class="col-4">
               <q-btn unelevated
                      class="full-width"
                      icon="isax:user"
@@ -44,7 +55,7 @@
                 <q-tooltip>ویرایش اطلاعات کاربر</q-tooltip>
               </q-btn>
             </div>
-            <div class="col-4 q-px-lg">
+            <div class="col-4">
               <q-btn unelevated
                      class="full-width"
                      :loading="loading"
@@ -54,7 +65,7 @@
                 <q-tooltip>ویرایش اطلاعات تیکت</q-tooltip>
               </q-btn>
             </div>
-            <div class="col-4 q-px-lg">
+            <div class="col-4">
               <q-btn unelevated
                      class="full-width"
                      icon="isax:sms"
@@ -67,7 +78,8 @@
           </div>
         </template>
         <template #after-form-builder>
-          <q-expansion-item v-model="updateUserTem"
+          <q-expansion-item v-if="isInAdminPage"
+                            v-model="updateUserTem"
                             label="تغییر کاربر"
                             class="q-my-lg rounded-borders">
             <q-card>
@@ -116,14 +128,14 @@
             </q-card>
           </q-expansion-item>
           <!--          <change-user @changeUser="ChangeUser" />-->
-          <div v-if="isAdmin">
-            <q-btn unelevated
-                   color="blue"
-                   :loading="loading"
-                   @click="editAssignedSupporters">ویرایش اپراتورها
-            </q-btn>
+          <div v-if="isInAdminPage">
+            <!--            <q-btn unelevated-->
+            <!--                   color="blue"-->
+            <!--                   :loading="loading"-->
+            <!--                   @click="editAssignedSupporters">ویرایش اپراتورها-->
+            <!--            </q-btn>-->
           </div>
-          <ticket-rate v-if="!isAdmin"
+          <ticket-rate v-if="!isInAdminPage"
                        :rate="getInputsValue('rate')"
                        :ticket-id="getInputsValue('id')"
                        class="q-ml-lg q-mt-lg" />
@@ -131,18 +143,18 @@
       </entity-edit>
       <messages v-for="(item, index) in userMessageArray"
                 :key="index"
-                :is-user-admin="isAdmin"
+                :is-user-admin="isInAdminPage"
                 :data="item" />
       <send-message-input ref="SendMessageInput"
                           class="q-my-lg"
-                          :isAdmin="isAdmin"
-                          :send-loading="sendLoading"
+                          :isAdmin="isInAdminPage"
+                          :send-loading="loading"
                           @creatTicket="sendTicketMessage" />
       <drawer :is-open="logDrawer"
               max-width="310px"
               side="left">
         <q-scroll-area class="fit">
-          <q-btn icon="mdi-close"
+          <q-btn icon="close"
                  unelevated
                  class="close-btn"
                  @click="logDrawer = false" />
@@ -156,7 +168,7 @@
                     narrow-indicator>
               <q-tab name="events"
                      label="رویداد ها" />
-              <q-tab v-if="isAdmin"
+              <q-tab v-if="isInAdminPage"
                      name="otherTickets"
                      label="تیکت های دیگر کاربر" />
             </q-tabs>
@@ -189,7 +201,7 @@
       <drawer :is-open="orderDrawer"
               max-width="1016px">
         <q-scroll-area class="fit">
-          <q-btn icon="mdi-close"
+          <q-btn icon="close"
                  class="close-btn"
                  unelevated
                  @click="orderDrawer = false" />
@@ -204,7 +216,7 @@
 <script>
 import { EntityEdit } from 'quasar-crud'
 import { User } from 'src/models/User.js'
-import API_ADDRESS from 'src/api/Addresses.js'
+import { APIGateway } from 'src/api/APIGateway'
 import Drawer from 'src/components/CustomDrawer.vue'
 import LogList from 'src/components/Ticket/LogList.vue'
 import Messages from 'src/components/Ticket/Messages.vue'
@@ -239,6 +251,7 @@ export default {
   data() {
     return {
       logList: [],
+      isEntityReady: false,
       sendLoading: false,
       updateUserTem: false,
       phoneNumber: null,
@@ -255,8 +268,85 @@ export default {
       userId: null,
       userMessageArray: [],
       expanded: true,
-      api: API_ADDRESS.ticket.show.base,
-      inputs: [
+      api: APIGateway.ticket.APIAdresses.base,
+      inputs: [],
+      userInputs: [
+        { type: 'input', name: 'title', responseKey: 'ticket.title', label: 'عنوان', col: 'col-md-4 col-sm-6 col-xs-12', disable: true },
+        {
+          type: 'input',
+          name: 'first_name',
+          responseKey: 'ticket.user.first_name',
+          label: 'نام',
+          col: 'col-md-4 col-sm-6 col-xs-12',
+          disable: true
+        },
+        {
+          type: 'input',
+          name: 'last_name',
+          responseKey: 'ticket.user.last_name',
+          label: 'نام خانوادگی',
+          col: 'col-md-4 col-sm-6 col-xs-12',
+          disable: true
+        },
+        {
+          type: 'input',
+          name: 'priority',
+          responseKey: 'ticket.priority.title',
+          label: 'اولویت',
+          col: 'col-md-4 col-sm-6 col-xs-12',
+          disable: true
+        },
+        {
+          type: 'select',
+          name: 'department',
+          options: [],
+          optionLabel: 'title',
+          optionValue: 'id',
+          responseKey: 'ticket.department.id',
+          label: 'گروه',
+          disable: true,
+          col: 'col-md-4 col-sm-6 col-xs-12'
+        },
+        {
+          type: 'select',
+          name: 'status',
+          options: [],
+          optionLabel: 'title',
+          optionValue: 'id',
+          responseKey: 'ticket.status.id',
+          label: 'وضعیت',
+          disable: true,
+          col: 'col-md-4 col-sm-6 col-xs-12'
+        },
+        {
+          type: 'dateTime',
+          name: 'created_at',
+          responseKey: 'ticket.created_at',
+          calendarIcon: ' ',
+          label: 'تاریخ ایجاد',
+          col: 'col-md-4 col-sm-6 col-xs-12',
+          disable: true
+        },
+        {
+          type: 'dateTime',
+          name: 'created_at',
+          responseKey: 'ticket.updated_at',
+          calendarIcon: ' ',
+          label: 'تاریخ بروز آوری:',
+          col: 'col-md-4 col-sm-6 col-xs-12',
+          disable: true
+        },
+        { type: 'hidden', name: 'id', responseKey: 'ticket.id', placeholder: 'id' },
+        { type: 'hidden', name: 'department_title', responseKey: 'ticket.department.title' },
+        { type: 'hidden', name: 'messages', responseKey: 'ticket.messages' },
+        { type: 'hidden', name: 'img', responseKey: 'ticket.user.photo' },
+        { type: 'hidden', name: 'logs', responseKey: 'ticket.logs' },
+        { type: 'hidden', name: 'userId', responseKey: 'ticket.user.id' },
+        { type: 'hidden', name: 'otherTickets', responseKey: 'other_tickets' },
+        { type: 'hidden', name: 'priority-id', responseKey: 'ticket.priority.id' },
+        { type: 'hidden', name: 'rate', responseKey: 'ticket.rate' }
+      ],
+      adminInputs: [
         { type: 'input', name: 'title', responseKey: 'ticket.title', label: 'عنوان', col: 'col-md-4', disable: true },
         {
           type: 'input',
@@ -306,6 +396,7 @@ export default {
           type: 'dateTime',
           name: 'created_at',
           responseKey: 'ticket.created_at',
+          calendarIcon: ' ',
           label: 'تاریخ ایجاد',
           col: 'col-md-4',
           disable: true
@@ -330,28 +421,32 @@ export default {
           type: 'dateTime',
           name: 'created_at',
           responseKey: 'ticket.updated_at',
+          calendarIcon: ' ',
           label: 'تاریخ بروز آوری:',
           col: 'col-md-4',
           disable: true
         },
-        { type: 'hidden', name: 'id', responseKey: 'ticket.id', label: 'id' },
+        { type: 'hidden', name: 'id', responseKey: 'ticket.id', placeholder: 'id' },
         { type: 'hidden', name: 'department_title', responseKey: 'ticket.department.title' },
-        { type: 'hidden', name: 'messages', responseKey: 'ticket.messages', label: '' },
-        { type: 'hidden', name: 'img', responseKey: 'ticket.user.photo', label: '' },
-        { type: 'hidden', name: 'logs', responseKey: 'ticket.logs', label: '' },
-        { type: 'hidden', name: 'userId', responseKey: 'ticket.user.id', label: '' },
-        { type: 'hidden', name: 'otherTickets', responseKey: 'other_tickets', label: '' },
+        { type: 'hidden', name: 'messages', responseKey: 'ticket.messages' },
+        { type: 'hidden', name: 'img', responseKey: 'ticket.user.photo' },
+        { type: 'hidden', name: 'logs', responseKey: 'ticket.logs' },
+        { type: 'hidden', name: 'userId', responseKey: 'ticket.user.id' },
+        { type: 'hidden', name: 'otherTickets', responseKey: 'other_tickets' },
         { type: 'hidden', name: 'priority-id', responseKey: 'ticket.priority.id' },
         { type: 'hidden', name: 'rate', responseKey: 'ticket.rate' },
         {
-          isAdmin: true,
+          isInAdminPage: true,
           type: 'entity',
           name: 'management',
           selectionMode: 'single',
-          label: 'انتخاب کاربر',
-          buttonColor: 'blue',
-          buttonTextColor: 'white',
-          buttonBadgeColor: 'primary',
+          popUpButtonConfig: {
+            unelevated: true,
+            color: 'blue',
+            textColor: 'white',
+            badgeColor: 'primary',
+            label: 'انتخاب کاربر'
+          },
           indexConfig: {
             apiAddress: 'https://reqres.in/api/users',
             tableTitle: 'لیست کاربران',
@@ -409,80 +504,92 @@ export default {
           itemIdentifyKey: 'mobile',
           selected: null,
           col: 'col-md-4'
-        },
-        {
-          type: 'entity',
-          name: 'editOperator', // assignees
-          selectionMode: 'multiple',
-          label: 'انتخاب اپراتورها',
-          buttonColor: 'blue',
-          buttonTextColor: 'white',
-          buttonBadgeColor: 'primary',
-          indexConfig: {
-            apiAddress: 'https://reqres.in/api/users',
-            tableTitle: 'لیست کاربران',
-            showTableItemsRouteName: 'Admin.BlockManagement.Show',
-            tableKeys: {
-              data: 'data',
-              total: 'total',
-              currentPage: 'page',
-              perPage: 'per_page',
-              pageKey: 'page'
-            },
-            table: {
-              columns: [
-                {
-                  name: 'id',
-                  required: true,
-                  label: '#',
-                  align: 'left',
-                  field: row => row.id
-                },
-                {
-                  name: 'first_name',
-                  required: true,
-                  label: 'نام',
-                  align: 'left',
-                  field: row => row.first_name
-                },
-                {
-                  name: 'last_name',
-                  required: true,
-                  label: 'نام خانوادگی',
-                  align: 'left',
-                  field: row => row.last_name
-                },
-                {
-                  name: 'role',
-                  required: true,
-                  label: 'نقش',
-                  align: 'left',
-                  field: row => row.email
-                }
-              ],
-              data: []
-            },
-            inputs: [
-              { type: 'input', name: 'mobile', value: null, label: 'شماره تلفن', col: 'col-md-6' },
-              { type: 'input', name: 'national_code', value: null, label: 'کدملی', col: 'col-md-6' },
-              { type: 'hidden', name: 'role', value: 123, label: 'نقش', col: 'col-md-3' }
-            ],
-            itemIdentifyKey: 'id',
-            itemIndicatorKey: 'id'
-          },
-          itemIdentifyKey: 'id',
-          itemIndicatorKey: 'id',
-          value: [],
-          responseKey: 'ticket.assignees',
-          selected: [],
-          col: 'col-md-6'
         }
+        // {
+        //   type: 'entity',
+        //   name: 'editOperator', // assignees
+        //   selectionMode: 'multiple',
+        //   popUpButtonConfig: {
+        //     unelevated: true,
+        //     color: 'blue',
+        //     textColor: 'white',
+        //     badgeColor: 'primary',
+        //     label: 'انتخاب اپراتورها'
+        //   },
+        //   indexConfig: {
+        //     apiAddress: 'https://reqres.in/api/users',
+        //     tableTitle: 'لیست کاربران',
+        //     showTableItemsRouteName: 'Admin.BlockManagement.Show',
+        //     tableKeys: {
+        //       data: 'data',
+        //       total: 'total',
+        //       currentPage: 'page',
+        //       perPage: 'per_page',
+        //       pageKey: 'page'
+        //     },
+        //     table: {
+        //       columns: [
+        //         {
+        //           name: 'id',
+        //           required: true,
+        //           label: '#',
+        //           align: 'left',
+        //           field: row => row.id
+        //         },
+        //         {
+        //           name: 'first_name',
+        //           required: true,
+        //           label: 'نام',
+        //           align: 'left',
+        //           field: row => row.first_name
+        //         },
+        //         {
+        //           name: 'last_name',
+        //           required: true,
+        //           label: 'نام خانوادگی',
+        //           align: 'left',
+        //           field: row => row.last_name
+        //         },
+        //         {
+        //           name: 'role',
+        //           required: true,
+        //           label: 'نقش',
+        //           align: 'left',
+        //           field: row => row.email
+        //         }
+        //       ],
+        //       data: []
+        //     },
+        //     inputs: [
+        //       { type: 'input', name: 'mobile', value: null, placeholder: 'شماره تلفن', col: 'col-md-6' },
+        //       { type: 'input', name: 'national_code', value: null, placeholder: 'کدملی', col: 'col-md-6' },
+        //       { type: 'hidden', name: 'role', value: 123, placeholder: 'نقش', col: 'col-md-3' }
+        //     ],
+        //     itemIdentifyKey: 'id',
+        //     itemIndicatorKey: 'id'
+        //   },
+        //   itemIdentifyKey: 'id',
+        //   itemIndicatorKey: 'id',
+        //   value: [],
+        //   responseKey: 'ticket.assignees',
+        //   selected: [],
+        //   col: 'col-md-6'
+        // }
       ]
     }
   },
   computed: {
+    isInAdminPage () {
+      return !!this.$route.name.includes('Admin')
+    },
     editAssignInput() {
       return this.inputs.find(item => item.name === 'editOperator')
+    },
+    ticketListRoute () {
+      if (this.$route.name.includes('Admin')) {
+        return { name: 'Admin.Ticket.Index' }
+      }
+      return { name: 'UserPanel.Ticket.Index' }
     }
   },
   watch: {
@@ -497,12 +604,28 @@ export default {
     this.api += '/' + this.$route.params.id
   },
   methods: {
+    async setInputs () {
+      const ticketFields = await this.getTicketData()
+      this.getInput('department').options = ticketFields.departments.list
+      this.getInput('status').options = ticketFields.statuses.list
+    },
+    async initTicket () {
+      this.setEntityValues()
+      await this.setInputs()
+      this.isEntityReady = true
+    },
+    setEntityValues () {
+      if (this.$route.name.includes('Admin')) {
+        this.inputs = this.adminInputs
+        return
+      }
+      this.inputs = this.userInputs
+    },
     async editAssignedSupporters() {
       const usersId = []
       this.editAssignInput.selected.forEach(item => {
         usersId.push(item.id)
       })
-      //  await this.$axios.post(API_ADDRESS.ticket.show.editAssign()
       try {
         this.loading = true
         await this.$apiGateway.ticket.editTicketAssignedSupporters(this.getInputsValue('id'), { assign: usersId })
@@ -513,32 +636,15 @@ export default {
     },
 
     filterDataForUserRole() {
-      this.inputs = this.inputs.filter(input => !input.isAdmin)
+      this.inputs = this.inputs.filter(input => !input.isInAdminPage)
     },
 
     getLogsInputValue () {
       return this.getInputsValue('logs')
     },
-    // updateTicketData() {
-    //   this.$axios.put(API_ADDRESS.ticket.show.base + '/' + this.getInputsValue('id'), {
-    //     department_id: this.getInputsValue('department'),
-    //     id: this.getInputsValue('id'),
-    //     priority_id: this.getInputsValue('priority-id'),
-    //     status_id: this.getInputsValue('status'),
-    //     title: this.getInputsValue('title'),
-    //     user_id: this.getInputsValue('userId')
-    //   })
-    //     .then((res) => {
-    //       this.$q.notify({
-    //         message: 'تغییرات با موفقیت اعمال شد.',
-    //         type: 'positive'
-    //       })
-    //     })
-    // },
     openShopLogList() {
       this.orderDrawer = this.orderDrawer === false
       this.orderLoading = true
-      // this.$axios.get(API_ADDRESS.user.orders.ordersById(this.userId))
       this.$apiGateway.user.ordersById({
         data: {
           userId: this.userId
@@ -886,7 +992,7 @@ export default {
       // ]
 
       this.userId = this.getInputsValue('userId')
-      if (!this.isAdmin) {
+      if (!this.isInAdminPage) {
         return
       }
       this.filterDataForUserRole()
@@ -895,7 +1001,6 @@ export default {
       this.logDrawer = this.logDrawer === false
     },
     async sendTicketStatusNotice(ticketId) {
-      //  this.$axios.post(API_ADDRESS.ticket.show.statusNotice(ticketId))
       const res = await this.$apiGateway.ticket.sendTicketStatusNotice(ticketId)
       this.$q.notify({
         message: res.data.message,

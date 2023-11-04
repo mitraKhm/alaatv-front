@@ -51,8 +51,8 @@
                    class="markerImage adminToolBoxMarker"
                    :class="{'border': item && item.editMode}"
                    :src="item.data.icon.options.iconUrl">
-              <q-img v-else
-                     src="img/mapMarker.png" />
+              <q-icon v-else
+                      name="ph:map-pin" />
             </l-icon>
           </l-marker>
           <l-polyline v-if="(item.type.name === 'polyline' || item.type.id === 2) && item.data.line && item.data.line.options"
@@ -94,8 +94,8 @@
                  class="markerImage adminToolBoxMarker"
                  :class="{'border': adminToolBox.marker.editMode}"
                  :src="adminToolBox.marker.data.icon.options.iconUrl">
-            <q-img v-else
-                   src="img/mapMarker.png" />
+            <q-icon v-else
+                    name="ph:map-pin" />
           </l-icon>
         </l-marker>
 
@@ -189,7 +189,7 @@
 </template>
 
 <script>
-import API_ADDRESS from 'src/api/Addresses.js'
+import { APIGateway } from 'src/api/APIGateway'
 import mapInfo from './components/mapInfo.vue'
 import MapFilters from './components/MapFilters.vue'
 import Drawer from 'src/components/CustomDrawer.vue'
@@ -271,9 +271,9 @@ export default {
       expansionIcon: '',
       toolsDrawer: false,
       filterValues: [],
-      crs: CRS.Simple,
+      crs: CRS?.Simple,
       mapZoom: 3,
-      mapCenter: latLng(-12000, 13200),
+      mapCenter: null,
       mapBounds: null,
       minZoom: 3,
       maxZoom: 11,
@@ -281,10 +281,10 @@ export default {
       maxBoundsViscosity: 1,
       currentZoom: 3,
       currentCenter: [0, 0],
-      baseUrl: window.baseUrl,
-      mapVersion: window.mapVersion,
-      contentSearchApi: window.contentSearchApi,
-      url: 'https://nodes.alaatv.com/upload/raheAbrishamMap/{z}/{x}/{y}.png?v=' + this.mapVersion,
+      baseUrl: '',
+      mapVersion: '',
+      contentSearchApi: '',
+      url: '',
       adminToolBox: {
         marker: {
           id: 0,
@@ -400,8 +400,14 @@ export default {
       }
     }
   },
-  created() {
-    this.getNodes()
+  mounted () {
+    // this.getNodes()
+    this.baseUrl = window.baseUrl
+    this.mapVersion = window.mapVersion
+    this.contentSearchApi = window.contentSearchApi
+    this.url = 'https://nodes.alaatv.com/upload/raheAbrishamMap/{z}/{x}/{y}.png?v=' + this.mapVersion
+    this.crs = CRS?.Simple
+    this.mapCenter = latLng(-12000, 13200)
     this.initMap()
     this.initTemplateData()
   },
@@ -599,7 +605,7 @@ export default {
         mapMaxResolution = 0.12500000,
         mapMinResolution = Math.pow(2, mapMaxZoom) * mapMaxResolution,
         // tileExtent = mapExtent,
-        crs = CRS.Simple
+        crs = CRS?.Simple
       // crs.transformation = new L.Transformation(1, -tileExtent[0], -1, tileExtent[3])
       crs.scale = function(zoom) {
         return Math.pow(2, zoom) / mapMinResolution
@@ -680,17 +686,19 @@ export default {
       }
     },
     getNodes() {
-      this.$axios.get('alaa/api/v2/dar/divar')
-        // .then(res => {
-        //   console.log(res)
-        // })
+      this.$axios.get('/dar/divar')
+        .then(() => {
+          // console.log(res)
+        })
         .catch(e => {
           this.node = MapItemsResponse.data
         })
     },
     saveMapItem() {
       const newMapItem = new MapItem(this.adminToolBox.marker)
-      this.$axios.post(API_ADDRESS.map.items, newMapItem)
+      APIGateway.map.saveMapItem(newMapItem)
+        .then(() => {})
+        .catch(() => {})
     },
     deleteAdminMapItem(data) {
     },

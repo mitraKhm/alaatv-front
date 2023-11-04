@@ -1,46 +1,91 @@
 <template>
-  <div class="shadow-5 bg-white q-pa-md q-mb-lg q-mx-sm rounded-borders content-info">
-    <h6 class="set-title">
-      {{content.title}}
-    </h6>
-    <q-tabs>
-      <q-tab name="توضیحات"
-             label="توضیحات" />
-    </q-tabs>
-    <div v-if="content.author">
-      {{content.author.first_name}} {{content.author.last_name}}
-    </div>
-    <h6 v-if="content.set"
-        class="set-title">
-      {{content.set.title}}
-    </h6>
-    <div v-if="content.body"
-         v-html="content.body" />
-    <q-separator class="q-my-lg" />
-    <q-separator class="q-my-lg" />
-    <div v-if="content.tags"
-         class="row">
-      <p class="col-1 q-mt-sm text-center">تگ ها</p>
-      <div class="col q-pl-sm">
-        <q-badge v-for="badge in content.tags"
-                 :key="badge"
-                 class="q-px-sm q-ml-sm"
-                 color="blue">
-          {{badge}}
-        </q-badge>
+  <div class="content-info-container">
+    <template v-if="content.loading">
+      <div class="q-mb-lg q-mx-sm">
+        <q-responsive :ratio="3/1">
+          <q-skeleton />
+        </q-responsive>
       </div>
-    </div>
+    </template>
+    <template v-else>
+      <div class="q-pa-md q-mb-lg q-mx-sm content-info">
+        <div dir="ltr"
+             class="float-right">
+          <q-btn icon="isax:share"
+                 flat
+                 color="black"
+                 size="13px">
+            <q-tooltip anchor="top middle"
+                       self="bottom middle"
+                       :offset="[10, 10]">
+              اشتراک گزاری
+            </q-tooltip>
+            <q-popup-proxy :offset="[10, 10]"
+                           transition-show="flip-up"
+                           transition-hide="flip-down">
+              <q-banner dense
+                        rounded>
+                <share-network :url="pageUrl"
+                               @on-select="shareGiftCard" />
+              </q-banner>
+            </q-popup-proxy>
+          </q-btn>
+          <bookmark :is-favored="content.is_favored"
+                    :loading="bookmarkLoading"
+                    @clicked="handleContentBookmark" />
+        </div>
+        <h6 class="set-title">
+          {{content.title}}
+        </h6>
+        <div class="description q-mt-lg">
+          <div v-if="content.author">
+            {{content.author.first_name}} {{content.author.last_name}}
+          </div>
+          <h6 v-if="content.set"
+              class="set-title">
+            {{content.set.title}}
+          </h6>
+          <div v-if="content.body"
+               class="q-mb-xl"
+               v-html="content.body" />
+          <div v-if="content.tags"
+               class="row">
+            <p class="col-1 q-mt-sm text-center">تگ ها</p>
+            <div class="col q-pl-sm">
+              <router-link v-for="badge in content.tags"
+                           :key="badge"
+                           :to="{name: 'Public.Content.Search', query: {'tags[]': badge } }">
+                <q-badge class="q-pa-sm q-ml-sm q-mb-sm"
+                         color="primary">
+                  {{badge}}
+                </q-badge>
+              </router-link>
+            </div>
+          </div>
+        </div>
+        <div v-if="hasRelatedProduct"
+             class="row">
+          <div class="col-md-5 col-sm-6 col-12">
+            <product-item :options="{product: content.related_product}" />
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script>
+import Bookmark from 'src/components/Bookmark.vue'
 import { Content } from 'src/models/Content.js'
-import { mixinWidget } from 'src/mixin/Mixins.js'
-import { APIGateway } from 'src/api/APIGateway'
+import { APIGateway } from 'src/api/APIGateway.js'
+import ShareNetwork from 'src/components/ShareNetwork.vue'
+import { mixinWidget, mixinPrefetchServerData, mixinAuth } from 'src/mixin/Mixins.js'
+import ProductItem from 'components/Widgets/Product/ProductItem/ProductItem.vue'
 
 export default {
   name: 'ContentShowInfo',
-  mixins: [mixinWidget],
+  components: { ProductItem, Bookmark, ShareNetwork },
+  mixins: [mixinWidget, mixinPrefetchServerData, mixinAuth],
   beforeRouteUpdate() {
     this.loadContent()
   },
@@ -54,25 +99,17 @@ export default {
   },
   data() {
     return {
-      content: new Content(),
-      sections: [
-        {
-          data: {
-            rows: [
-              {
-                cols: [
-                  {
-                    widgets: []
-                  }
-                ],
-                options: {
-                  boxed: false
-                }
-              }
-            ]
-          }
-        }
-      ]
+      tab: 'info',
+      bookmarkLoading: false,
+      content: new Content()
+    }
+  },
+  computed: {
+    pageUrl() {
+      return window.location.href
+    },
+    hasRelatedProduct() {
+      return this.content.related_product
     }
   },
   watch: {
@@ -83,27 +120,66 @@ export default {
       this.loadContent()
     }
   },
-  created() {
-    this.loadContent()
-  },
+
   methods: {
-    loadContent() {
-      this.getContentByRequest()
+    prefetchServerDataPromise () {
+      this.content.loading = true
+      return this.getContentByRequest()
     },
-    getContentByRequest() {
-      const contentId = this.getContentId()
-      let promise = null
-      promise = APIGateway.content.show(contentId)
-      if (promise) {
-        promise
-          .then((response) => {
-            this.content = new Content(response)
-            this.content.loading = false
+    prefetchServerDataPromiseThen (data) {
+      this.content = new Content(data)
+      this.content.loading = false
+    },
+    prefetchServerDataPromiseCatch () {
+      this.content.loading = false
+    },
+    loadContent() {
+      this.prefetchServerDataPromise()
+        .then((content) => {
+          this.prefetchServerDataPromiseThen(content)
+        })
+        .catch(() => {
+          this.prefetchServerDataPromiseCatch()
+        })
+    },
+
+    hasPamphlet() {
+      return this.content.file.pamphlet && this.content.file.pamphlet.length > 0
+    },
+    handleContentBookmark () {
+      if (!this.isUserLogin) {
+        return
+      }
+
+      this.bookmarkLoading = true
+      if (this.content.is_favored) {
+        this.$apiGateway.content.unfavored(this.content.id)
+          .then(() => {
+            this.content.is_favored = !this.content.is_favored
+            this.bookmarkLoading = false
           })
           .catch(() => {
-            this.content.loading = false
+            this.bookmarkLoading = false
           })
+        return
       }
+      this.$apiGateway.content.favored(this.content.id)
+        .then(() => {
+          this.content.is_favored = !this.content.is_favored
+          this.bookmarkLoading = false
+        })
+        .catch(() => {
+          this.bookmarkLoading = false
+        })
+    },
+    shareGiftCard({ name, url }) {
+      window.open(url, '_blank')
+    },
+
+    getContentByRequest() {
+      this.content.loading = true
+      const contentId = this.getContentId()
+      return APIGateway.content.show(contentId)
     },
     getContentId () {
       if (this.options.productId) {
@@ -124,11 +200,5 @@ export default {
 <style lang="scss" scoped>
   h6 {
     margin: 0 !important;
-  }
-
-  .content-info {
-    .set-title {
-      color: blue;
-    }
   }
 </style>
